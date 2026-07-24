@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虚拟化学实验室 · 九年级化学实验沙盒</title>
+<style>
+/* ============ 主题变量 ============ */
+:root{
+  --bg:#0f1419; --panel:#1a2027; --panel2:#222b34; --border:#2d3743;
+  --text:#e2e8f0; --text-dim:#94a3b8; --accent:#22d3ee; --accent2:#0ea5e9;
+  --danger:#f87171; --warn:#fbbf24; --ok:#34d399; --flame:#fb923c;
+  --reagent-solid:#a78bfa; --reagent-liquid:#60a5fa; --reagent-gas:#f472b6;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%; overflow:hidden;}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  background:var(--bg); color:var(--text); font-size:14px; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+input{font-family:inherit;}
+
+/* ============ 顶栏 ============ */
+.topbar{
+  height:52px; display:flex; align-items:center; gap:12px; padding:0 16px;
+  background:linear-gradient(90deg,#0c1820,#15252e); border-bottom:1px solid var(--border);
+  box-shadow:0 2px 8px rgba(0,0,0,.3); z-index:10;
+}
+.topbar .logo{font-size:18px; font-weight:700; color:var(--accent); letter-spacing:1px;}
+.topbar .logo span{color:var(--text-dim); font-weight:400; font-size:12px; margin-left:8px;}
+.topbar .spacer{flex:1;}
+.topbar .mode-tabs{display:flex; background:var(--panel); border-radius:8px; padding:3px; border:1px solid var(--border);}
+.topbar .mode-tabs button{padding:6px 14px; border-radius:6px; font-size:13px; color:var(--text-dim); transition:.2s;}
+.topbar .mode-tabs button.active{background:var(--accent); color:#062029; font-weight:600;}
+.topbar .btn{padding:7px 14px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); font-size:13px; color:var(--text-dim); transition:.2s;}
+.topbar .btn:hover{border-color:var(--accent); color:var(--accent);}
+.topbar .btn.danger:hover{border-color:var(--danger); color:var(--danger);}
+
+/* ============ 主布局 ============ */
+.main{display:grid; grid-template-columns:240px 1fr 300px; height:calc(100vh - 52px - 28px);}
+.panel{background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden;}
+.panel.right{border-right:none; border-left:1px solid var(--border);}
+
+/* 左栏 */
+.panel-tabs{display:flex; border-bottom:1px solid var(--border); background:var(--panel2);}
+.panel-tabs button{flex:1; padding:10px 4px; font-size:12px; color:var(--text-dim); border-bottom:2px solid transparent; transition:.2s;}
+.panel-tabs button.active{color:var(--accent); border-bottom-color:var(--accent);}
+.panel-tabs button:hover{color:var(--text);}
+.panel-search{padding:8px; border-bottom:1px solid var(--border);}
+.panel-search input{width:100%; padding:7px 10px; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:var(--text); font-size:13px; outline:none;}
+.panel-search input:focus{border-color:var(--accent);}
+.list{flex:1; overflow-y:auto; padding:6px;}
+.list::-webkit-scrollbar{width:6px;}
+.list::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px;}
+.list-item{display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; cursor:grab; margin-bottom:3px; transition:.15s; border:1px solid transparent;}
+.list-item:hover{background:var(--panel2); border-color:var(--border);}
+.list-item:active{cursor:grabbing;}
+.list-item .icon{width:28px; height:28px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:var(--bg); border-radius:4px;}
+.list-item .icon svg{width:24px; height:24px;}
+.list-item .meta{flex:1; min-width:0;}
+.list-item .name{font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.list-item .sub{font-size:11px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.list-item .badge{font-size:10px; padding:1px 5px; border-radius:3px; flex-shrink:0;}
+.badge.solid{background:rgba(167,139,250,.2); color:var(--reagent-solid);}
+.badge.liquid{background:rgba(96,165,250,.2); color:var(--reagent-liquid);}
+.badge.gas{background:rgba(244,114,182,.2); color:var(--reagent-gas);}
+
+/* 模板列表 */
+.template-item{padding:9px 10px; border-radius:6px; cursor:pointer; margin-bottom:4px; background:var(--panel2); border:1px solid var(--border); transition:.15s;}
+.template-item:hover{border-color:var(--accent);}
+.template-item .t-title{font-size:13px; color:var(--text); margin-bottom:3px;}
+.template-item .t-grade{font-size:11px; color:var(--text-dim);}
+
+/* 中栏工作台 */
+.workbench{position:relative; background:#1e2a33; overflow:hidden; display:flex; flex-direction:column;}
+.toolbar{height:42px; display:flex; align-items:center; gap:6px; padding:0 10px; background:var(--panel); border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto;}
+.toolbar .tool{padding:6px 10px; border-radius:5px; background:var(--panel2); border:1px solid var(--border); font-size:12px; color:var(--text-dim); white-space:nowrap; transition:.15s; display:flex; align-items:center; gap:4px;}
+.toolbar .tool:hover{border-color:var(--accent); color:var(--accent);}
+.toolbar .tool.active{background:var(--accent); color:#062029; border-color:var(--accent);}
+.toolbar .sep{width:1px; height:20px; background:var(--border); margin:0 3px;}
+.canvas-wrap{flex:1; position:relative; overflow:hidden;}
+#canvas{width:100%; height:100%; display:block; background:radial-gradient(ellipse at center,#243341 0%,#1a2530 100%);}
+.canvas-hint{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text-dim); font-size:15px; text-align:center; pointer-events:none; opacity:.6;}
+.canvas-hint .big{font-size:42px; display:block; margin-bottom:10px; opacity:.4;}
+
+/* 选中器材浮窗 */
+.float-panel{position:absolute; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px; box-shadow:0 4px 16px rgba(0,0,0,.5); z-index:50; min-width:160px; display:none;}
+.float-panel.show{display:block;}
+.float-panel .fp-title{font-size:12px; color:var(--accent); margin-bottom:6px; font-weight:600; border-bottom:1px solid var(--border); padding-bottom:4px;}
+.float-panel .fp-row{display:flex; align-items:center; gap:6px; margin-bottom:4px; font-size:12px;}
+.float-panel .fp-row label{color:var(--text-dim); min-width:40px;}
+.float-panel select,.float-panel input{flex:1; padding:3px 5px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:4px; font-size:12px; outline:none;}
+.float-panel .fp-btns{display:flex; gap:4px; margin-top:6px;}
+.float-panel .fp-btns button{flex:1; padding:5px; border-radius:4px; font-size:12px; background:var(--panel2); border:1px solid var(--border); color:var(--text);}
+.float-panel .fp-btns button:hover{border-color:var(--accent); color:var(--accent);}
+.float-panel .fp-btns button.del:hover{border-color:var(--danger); color:var(--danger);}
+
+/* 状态条 */
+.statusbar{height:28px; display:flex; align-items:center; padding:0 14px; background:var(--panel); border-top:1px solid var(--border); font-size:12px; color:var(--text-dim); gap:14px;}
+.statusbar .item{display:flex; align-items:center; gap:4px;}
+.statusbar .dot{width:7px; height:7px; border-radius:50%; background:var(--ok);}
+
+/* 右栏 */
+.right-tabs{display:flex; border-bottom:1px solid var(--border); background:var(--panel2);}
+.right-tabs button{flex:1; padding:10px 4px; font-size:12px; color:var(--text-dim); border-bottom:2px solid transparent;}
+.right-tabs button.active{color:var(--accent); border-bottom-color:var(--accent);}
+.right-content{flex:1; overflow-y:auto; padding:8px;}
+.right-content::-webkit-scrollbar{width:6px;}
+.right-content::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px;}
+.kb-search{padding:8px; border-bottom:1px solid var(--border); background:var(--panel);}
+.kb-search input{width:100%; padding:7px 10px; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:var(--text); font-size:13px; outline:none;}
+.kb-search input:focus{border-color:var(--accent);}
+
+/* 知识手册卡 */
+.kb-card{background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; cursor:pointer; transition:.15s;}
+.kb-card:hover{border-color:var(--accent);}
+.kb-card .kb-title{font-size:13px; color:var(--text); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:6px;}
+.kb-card .kb-sub{font-size:11px; color:var(--text-dim);}
+.kb-card .kb-detail{margin-top:8px; padding-top:8px; border-top:1px solid var(--border); font-size:12px; display:none;}
+.kb-card.open .kb-detail{display:block;}
+.kb-card .kb-row{margin-bottom:3px; color:var(--text-dim);}
+.kb-card .kb-row b{color:var(--text); font-weight:500;}
+.kb-card .kb-eq{background:var(--bg); padding:6px 8px; border-radius:4px; color:var(--accent); font-family:monospace; margin:4px 0; font-size:12px;}
+
+/* 实验报告 */
+.report-empty{color:var(--text-dim); text-align:center; padding:30px 10px; font-size:13px;}
+.report-item{background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:12px;}
+.report-item .ri-time{color:var(--text-dim); font-size:10px; margin-bottom:2px;}
+.report-item .ri-action{color:var(--text);}
+.report-item .ri-eq{color:var(--accent); font-family:monospace; margin-top:4px; background:var(--bg); padding:3px 6px; border-radius:3px;}
+.report-item .ri-pheno{color:var(--warn); margin-top:3px;}
+
+/* Toast */
+.toast-wrap{position:fixed; top:64px; left:50%; transform:translateX(-50%); z-index:1000; display:flex; flex-direction:column; gap:8px; pointer-events:none;}
+.toast{padding:10px 18px; border-radius:8px; background:var(--panel); border:1px solid var(--border); box-shadow:0 4px 16px rgba(0,0,0,.5); font-size:13px; color:var(--text); animation:toastIn .3s; max-width:400px;}
+.toast.ok{border-color:var(--ok); color:var(--ok);}
+.toast.warn{border-color:var(--warn); color:var(--warn);}
+.toast.danger{border-color:var(--danger); color:var(--danger);}
+@keyframes toastIn{from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);}}
+
+/* 加药对话框 */
+.modal-mask{position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:500; display:none; align-items:center; justify-content:center;}
+.modal-mask.show{display:flex;}
+.modal{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px; width:340px; max-height:70vh; display:flex; flex-direction:column;}
+.modal h3{font-size:15px; color:var(--accent); margin-bottom:12px;}
+.modal .modal-list{flex:1; overflow-y:auto; margin-bottom:12px;}
+.modal .modal-list .list-item{cursor:pointer;}
+.modal .modal-list .list-item:hover{background:var(--panel2);}
+.modal .modal-foot{display:flex; gap:8px;}
+.modal .modal-foot button{flex:1; padding:8px; border-radius:6px; background:var(--panel2); border:1px solid var(--border); color:var(--text); font-size:13px;}
+.modal .modal-foot button.primary{background:var(--accent); color:#062029; border-color:var(--accent); font-weight:600;}
+.modal .qty-row{display:flex; align-items:center; gap:8px; padding:8px; background:var(--bg); border-radius:6px; margin-bottom:8px;}
+.modal .qty-row label{font-size:12px; color:var(--text-dim); min-width:50px;}
+.modal .qty-row input{flex:1; padding:5px 8px; background:var(--panel); border:1px solid var(--border); color:var(--text); border-radius:4px; outline:none;}
+
+/* SVG 内部样式 */
+.equip-instance{cursor:grab;}
+.equip-instance:active{cursor:grabbing;}
+.equip-instance.selected{filter:drop-shadow(0 0 6px var(--accent));}
+.port{fill:var(--accent); stroke:#fff; stroke-width:1; cursor:pointer; opacity:.7;}
+.port:hover{opacity:1; r:5;}
+.port.linking{opacity:1; fill:var(--warn); animation:portPulse 1s infinite;}
+@keyframes portPulse{0%,100%{r:4;} 50%{r:6;}}
+.connection-path{stroke:var(--text-dim); stroke-width:3; fill:none; opacity:.7; cursor:pointer;}
+.connection-path:hover{stroke:var(--accent); opacity:1;}
+.bubble{fill:rgba(255,255,255,.6);}
+.flame{filter:drop-shadow(0 0 4px var(--flame));}
+
+/* 响应式（小屏） */
+@media(max-width:900px){
+  .main{grid-template-columns:160px 1fr 0;}
+  .panel.right{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="topbar">
+  <div class="logo">⚗️ 虚拟化学实验室<span>九年级化学实验沙盒</span></div>
+  <div class="spacer"></div>
+  <div class="mode-tabs">
+    <button id="mode-sandbox" class="active">🧪 自由沙盒</button>
+    <button id="mode-template">📋 实验模板</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="btn-help">❓ 帮助</button>
+  <button class="btn danger" id="btn-reset">🗑️ 清空工作台</button>
+</div>
+
+<!-- 主区 -->
+<div class="main">
+  <!-- 左栏 -->
+  <div class="panel">
+    <div class="panel-tabs">
+      <button class="active" data-lefttab="equip">器材</button>
+      <button data-lefttab="reagent">药品</button>
+      <button data-lefttab="template">模板</button>
+    </div>
+    <div class="panel-search">
+      <input id="left-search" placeholder="搜索器材..." />
+    </div>
+    <div class="list" id="left-list"></div>
+  </div>
+
+  <!-- 中栏工作台 -->
+  <div class="workbench">
+    <div class="toolbar">
+      <button class="tool" data-action="select">👆 选择</button>
+      <button class="tool" data-action="heat">🔥 加热</button>
+      <button class="tool" data-action="ignite">✨ 点燃</button>
+      <button class="tool" data-action="stir">🥄 搅拌</button>
+      <button class="tool" data-action="pour">⬇️ 倾倒/混合</button>
+      <button class="tool" data-action="connect">🔗 连接</button>
+      <button class="tool" data-action="delete">🗑️ 删除</button>
+      <div class="sep"></div>
+      <button class="tool" data-action="check-seal">🔍 查气密性</button>
+      <button class="tool" data-action="collect-gas">💨 收集气体</button>
+    </div>
+    <div class="canvas-wrap">
+      <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+        <defs id="canvas-defs"></defs>
+        <g id="layer-connections"></g>
+        <g id="layer-equip"></g>
+        <g id="layer-ui"></g>
+      </svg>
+      <div class="canvas-hint" id="canvas-hint">
+        <span class="big">⚗️</span>
+        从左侧拖拽器材到这里开始实验<br>
+        <span style="font-size:12px;">选中器材后可加药、加热、点燃</span>
+      </div>
+      <!-- 选中器材浮窗 -->
+      <div class="float-panel" id="float-panel"></div>
+    </div>
+  </div>
+
+  <!-- 右栏 -->
+  <div class="panel right">
+    <div class="right-tabs">
+      <button class="active" data-righttab="kb">📚 知识手册</button>
+      <button data-righttab="report">📝 实验报告</button>
+    </div>
+    <div class="kb-search">
+      <input id="kb-search" placeholder="搜索药品、器材、反应..." />
+    </div>
+    <div class="right-content" id="right-content"></div>
+  </div>
+</div>
+
+<!-- 状态条 -->
+<div class="statusbar">
+  <div class="item"><span class="dot"></span><span id="status-mode">自由沙盒模式</span></div>
+  <div class="item">器材：<span id="status-equip-count">0</span></div>
+  <div class="item">当前工具：<span id="status-tool">选择</span></div>
+  <div class="item" style="margin-left:auto;" id="status-tip">提示：拖拽器材到画布，选中后加药</div>
+</div>
+
+<!-- 加药对话框 -->
+<div class="modal-mask" id="reagent-modal">
+  <div class="modal">
+    <h3 id="reagent-modal-title">添加药品</h3>
+    <div class="modal-list" id="reagent-modal-list"></div>
+    <div class="qty-row">
+      <label>用量</label>
+      <input type="number" id="reagent-qty" value="1" min="0.1" step="0.1" />
+      <span style="font-size:12px;color:var(--text-dim);">份</span>
+    </div>
+    <div class="modal-foot">
+      <button id="reagent-cancel">取消</button>
+      <button class="primary" id="reagent-ok">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 帮助对话框 -->
+<div class="modal-mask" id="help-modal">
+  <div class="modal" style="width:420px;">
+    <h3>❓ 使用帮助</h3>
+    <div style="font-size:13px; line-height:1.8; color:var(--text); max-height:60vh; overflow-y:auto;">
+      <p><b style="color:var(--accent);">1. 添加器材</b><br>从左侧"器材"栏拖拽到中间画布</p>
+      <p style="margin-top:8px;"><b style="color:var(--accent);">2. 加药</b><br>选中器材（点击它）→ 浮窗中选择药品和用量</p>
+      <p style="margin-top:8px;"><b style="color:var(--accent);">3. 加热/点燃</b><br>顶部工具栏点"加热"或"点燃" → 点击目标器材</p>
+      <p style="margin-top:8px;"><b style="color:var(--accent);">4. 连接器材</b><br>工具栏点"连接" → 点第一个器材的接口(圆点) → 点第二个器材的接口</p>
+      <p style="margin-top:8px;"><b style="color:var(--accent);">5. 触发反应</b><br>加热/点燃/混合会自动匹配反应规则，显示方程式和现象</p>
+      <p style="margin-top:8px;"><b style="color:var(--accent);">6. 知识手册</b><br>右栏搜索药品/器材/反应，查看性质和方程式</p>
+      <p style="margin-top:8px;color:var(--text-dim);">提示：危险操作（如加热空试管、KMnO4+浓盐酸）会被拦截。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="primary" id="help-ok">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+/* ============================================================
+   虚拟化学实验室 · 阶段一 MVP
+   单文件 / 原生JS+SVG / 离线可用
+   ============================================================ */
+"use strict";
+
+/* ============ 工具函数 ============ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const ns = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs={}){
+  const el = document.createElementNS(ns, tag);
+  for(const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function toast(msg, type=""){
+  const t = document.createElement("div");
+  t.className = "toast " + type;
+  t.textContent = msg;
+  $("#toast-wrap").appendChild(t);
+  setTimeout(()=>{
+    t.style.opacity = "0";
+    t.style.transition = "opacity .3s";
+    setTimeout(()=>t.remove(), 300);
+  }, 3000);
+}
+function nowTime(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
+}
+
+/* ============ 数据占位（后续模块填充） ============ */
+let EQUIPMENT = [];
+let REAGENTS = [];
+let REACTIONS = [];
+let TEMPLATES = [];
+
+/* ============ 全局状态 ============ */
+const state = {
+  mode: "sandbox",        // sandbox | template
+  leftTab: "equip",       // equip | reagent | template
+  rightTab: "kb",         // kb | report
+  tool: "select",         // select|heat|ignite|stir|pour|connect|delete|check-seal|collect-gas
+  instances: [],          // 工作台器材实例
+  connections: [],        // 连接关系
+  selectedId: null,       // 当前选���实例id
+  linkingFrom: null,      // 连接模式下的起始port信息
+  report: [],             // 实验报告
+  nextId: 1,
+};
+
+/* ============ 数据初始化（在下方DATA模块定义后调用） ============ */
+// 见文件底部 init()
+</script>
+
+<!-- ============ 数据模块：器材 ============ -->
+<script>
+/* ============================================================
+   器材库 EQUIPMENT
+   每个器材含 SVG symbol 定义（在 defs 中复用）和实例元数据
+   ============================================================ */
+EQUIPMENT = [
+  // ---------- 容器类 ----------
+  {
+    id:"testTube", name:"试管", type:"container",
+    capacity:20, heatable:true,
+    props:{材质:"玻璃",用途:"少量物质反应容器，可直接加热"},
+    ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-testTube" viewBox="0 0 50 120">
+        <path d="M15 8 L15 95 Q15 110 25 110 Q35 110 35 95 L35 8" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <ellipse cx="25" cy="8" rx="10" ry="2.5" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <line x1="15" y1="30" x2="20" y2="30" stroke="#b8d4e8" stroke-width="1"/>
+        <line x1="15" y1="50" x2="20" y2="50" stroke="#b8d4e8" stroke-width="1"/>
+        <line x1="15" y1="70" x2="20" y2="70" stroke="#b8d4e8" stroke-width="1"/>
+      </symbol>`,
+    instSize:{w:50,h:120},
+  },
+  {
+    id:"beaker", name:"烧杯", type:"container",
+    capacity:250, heatable:true,
+    props:{材质:"玻璃",用途:"较大体积反应容器，需垫石棉网加热"},
+    ports:[{id:"mouth",x:50,y:5,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-beaker" viewBox="0 0 80 90">
+        <path d="M8 10 L8 80 Q8 85 13 85 L67 85 Q72 85 72 80 L72 10" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <ellipse cx="40" cy="10" rx="32" ry="4" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <line x1="8" y1="25" x2="14" y2="25" stroke="#b8d4e8" stroke-width="1"/>
+        <line x1="8" y1="45" x2="14" y2="45" stroke="#b8d4e8" stroke-width="1"/>
+        <line x1="8" y1="65" x2="14" y2="65" stroke="#b8d4e8" stroke-width="1"/>
+        <text x="20" y="28" font-size="6" fill="#7a9cb0">100</text>
+        <text x="20" y="48" font-size="6" fill="#7a9cb0">150</text>
+        <text x="20" y="68" font-size="6" fill="#7a9cb0">200</text>
+      </symbol>`,
+    instSize:{w:80,h:90},
+  },
+  {
+    id:"flaskErlenmeyer", name:"锥形瓶", type:"container",
+    capacity:150, heatable:true,
+    props:{材质:"玻璃",用途:"滴定反应容器，需垫石棉网加热"},
+    ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-flaskErlenmeyer" viewBox="0 0 70 100">
+        <path d="M30 8 L30 35 L8 88 Q8 95 15 95 L55 95 Q62 95 62 88 L40 35 L40 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+      </symbol>`,
+    instSize:{w:70,h:100},
+  },
+  {
+    id:"flaskRound", name:"圆底烧瓶", type:"container",
+    capacity:200, heatable:true,
+    props:{材质:"玻璃",用途:"加热反应容器，需垫石棉网"},
+    ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-flaskRound" viewBox="0 0 70 110">
+        <path d="M30 8 L30 45 Q15 55 15 75 Q15 100 35 100 Q55 100 55 75 Q55 55 40 45 L40 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+      </symbol>`,
+    instSize:{w:70,h:110},
+  },
+  {
+    id:"flaskFlat", name:"平底烧瓶", type:"container",
+    capacity:200, heatable:true,
+    props:{材质:"玻璃",用途:"加热反应容器"},
+    ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-flaskFlat" viewBox="0 0 70 110">
+        <path d="M30 8 L30 45 Q15 55 15 95 L55 95 L55 45 Q55 55 40 45 L40 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+      </symbol>`,
+    instSize:{w:70,h:110},
+  },
+  {
+    id:"gasJar", name:"集气瓶", type:"container",
+    capacity:250, heatable:false,
+    props:{材质:"玻璃",用途:"收集气体"},
+    ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-gasJar" viewBox="0 0 70 100">
+        <rect x="10" y="8" width="50" height="85" rx="2" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <rect x="8" y="4" width="54" height="6" rx="2" fill="rgba(200,230,255,.25)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <line x1="35" y1="14" x2="35" y2="90" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+      </symbol>`,
+    instSize:{w:70,h:100},
+  },
+  {
+    id:"waterTrough", name:"水槽", type:"container",
+    capacity:1000, heatable:false,
+    props:{材质:"塑料/玻璃",用途:"排水法收集气体"},
+    ports:[{id:"top",x:50,y:8,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-waterTrough" viewBox="0 0 120 70">
+        <path d="M5 15 L5 60 Q5 65 10 65 L110 65 Q115 65 115 60 L115 15" fill="rgba(100,180,255,.2)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <rect x="3" y="10" width="114" height="6" rx="2" fill="rgba(200,230,255,.25)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <path d="M8 30 Q60 28 112 30 L112 60 Q60 62 8 60 Z" fill="rgba(100,180,255,.3)"/>
+      </symbol>`,
+    instSize:{w:120,h:70},
+  },
+  {
+    id:"crucible", name:"坩埚", type:"container",
+    capacity:15, heatable:true,
+    props:{材质:"瓷",用途:"高温灼烧固体"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-crucible" viewBox="0 0 50 50">
+        <path d="M12 12 L14 40 Q14 45 25 45 Q36 45 36 40 L38 12" fill="rgba(220,220,220,.3)" stroke="#d0d0d0" stroke-width="1.5"/>
+        <ellipse cx="25" cy="12" rx="13" ry="3" fill="rgba(220,220,220,.4)" stroke="#d0d0d0" stroke-width="1.2"/>
+      </symbol>`,
+    instSize:{w:50,h:50},
+  },
+  {
+    id:"evaporatingDish", name:"蒸发皿", type:"container",
+    capacity:30, heatable:true,
+    props:{材质:"瓷",用途:"蒸发浓缩溶液"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-evaporatingDish" viewBox="0 0 70 35">
+        <path d="M5 8 Q5 18 15 25 L55 25 Q65 18 65 8" fill="rgba(220,220,220,.3)" stroke="#d0d0d0" stroke-width="1.5"/>
+        <ellipse cx="35" cy="8" rx="30" ry="4" fill="rgba(220,220,220,.4)" stroke="#d0d0d0" stroke-width="1.2"/>
+      </symbol>`,
+    instSize:{w:70,h:35},
+  },
+  // ---------- 加热源 ----------
+  {
+    id:"alcoholLamp", name:"酒精灯", type:"heatSource",
+    capacity:0, heatable:false,
+    props:{材质:"玻璃+铜",用途:"提供加热热源"},
+    ports:[{id:"top",x:50,y:5,type:"flame",dir:"up"}],
+    symbol:`
+      <symbol id="sym-alcoholLamp" viewBox="0 0 50 70">
+        <rect x="10" y="30" width="30" height="35" rx="3" fill="rgba(180,200,220,.3)" stroke="#9ab" stroke-width="1.5"/>
+        <rect x="20" y="20" width="10" height="12" fill="#c30" stroke="#800" stroke-width="1"/>
+        <ellipse cx="25" cy="20" rx="6" ry="2" fill="#a40"/>
+        <line x1="25" y1="8" x2="25" y2="20" stroke="#666" stroke-width="1.5"/>
+      </symbol>`,
+    instSize:{w:50,h:70},
+  },
+  // ---------- 工具类 ----------
+  {
+    id:"glassRod", name:"玻璃棒", type:"tool",
+    capacity:0, heatable:false,
+    props:{材质:"玻璃",用途:"搅拌、引流"},
+    ports:[],
+    symbol:`<symbol id="sym-glassRod" viewBox="0 0 8 80"><rect x="3" y="2" width="2" height="76" fill="rgba(200,230,255,.5)" stroke="#b8d4e8" stroke-width="0.5"/></symbol>`,
+    instSize:{w:8,h:80},
+  },
+  {
+    id:"funnel", name:"漏斗", type:"tool",
+    capacity:0, heatable:false,
+    props:{材质:"玻璃",用途:"过滤、引流"},
+    ports:[{id:"top",x:50,y:5,type:"open",dir:"up"},{id:"bottom",x:50,y:95,type:"open",dir:"down"}],
+    symbol:`
+      <symbol id="sym-funnel" viewBox="0 0 60 80">
+        <path d="M5 8 L25 45 L25 75 L35 75 L35 45 L55 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <ellipse cx="30" cy="8" rx="25" ry="4" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+      </symbol>`,
+    instSize:{w:60,h:80},
+  },
+  {
+    id:"dropper", name:"胶头滴管", type:"tool",
+    capacity:5, heatable:false,
+    props:{材质:"玻璃+橡胶",用途:"滴加少量液体"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-dropper" viewBox="0 0 20 80">
+        <ellipse cx="10" cy="8" rx="7" ry="6" fill="#c30"/>
+        <rect x="7" y="14" width="6" height="50" fill="rgba(200,230,255,.3)" stroke="#b8d4e8" stroke-width="1"/>
+        <path d="M7 64 L10 75 L13 64 Z" fill="rgba(200,230,255,.3)" stroke="#b8d4e8" stroke-width="1"/>
+      </symbol>`,
+    instSize:{w:20,h:80},
+  },
+  {
+    id:"measuringCylinder", name:"量筒", type:"tool",
+    capacity:100, heatable:false,
+    props:{材质:"玻璃",用途:"量取液体体积（不可加热）"},
+    ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
+    symbol:`
+      <symbol id="sym-measuringCylinder" viewBox="0 0 40 100">
+        <path d="M8 8 L8 90 Q8 95 13 95 L27 95 Q32 95 32 90 L32 8" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
+        <rect x="4" y="4" width="32" height="5" rx="2" fill="rgba(200,230,255,.25)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <line x1="8" y1="25" x2="14" y2="25" stroke="#b8d4e8" stroke-width="1"/>
+        <line x1="8" y1="45" x2="14" y2="45" stroke="#b8d4e8" stroke-width="1"/>
+        <line x1="8" y1="65" x2="14" y2="65" stroke="#b8d4e8" stroke-width="1"/>
+        <text x="16" y="28" font-size="5" fill="#7a9cb0">30</text>
+        <text x="16" y="48" font-size="5" fill="#7a9cb0">60</text>
+        <text x="16" y="68" font-size="5" fill="#7a9cb0">90</text>
+      </symbol>`,
+    instSize:{w:40,h:100},
+  },
+  {
+    id:"spatula", name:"药匙", type:"tool",
+    capacity:0, heatable:false,
+    props:{材质:"塑料/金属",用途:"取用固体粉末"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-spatula" viewBox="0 0 60 20">
+        <rect x="2" y="8" width="40" height="3" fill="#888"/>
+        <ellipse cx="48" cy="10" rx="10" ry="5" fill="rgba(200,230,255,.4)" stroke="#b8d4e8" stroke-width="1"/>
+      </symbol>`,
+    instSize:{w:60,h:20},
+  },
+  {
+    id:"tongs", name:"镊子", type:"tool",
+    capacity:0, heatable:false,
+    props:{材质:"金属",用途:"夹取块状固体"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-tongs" viewBox="0 0 40 60">
+        <path d="M15 5 L18 50" stroke="#888" stroke-width="2" fill="none"/>
+        <path d="M25 5 L22 50" stroke="#888" stroke-width="2" fill="none"/>
+        <rect x="13" y="3" width="14" height="4" rx="2" fill="#666"/>
+        <path d="M18 50 L15 55" stroke="#888" stroke-width="2"/>
+        <path d="M22 50 L25 55" stroke="#888" stroke-width="2"/>
+      </symbol>`,
+    instSize:{w:40,h:60},
+  },
+  {
+    id:"thermometer", name:"温度计", type:"tool",
+    capacity:0, heatable:false,
+    props:{材质:"玻璃",用途:"测量温度"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-thermometer" viewBox="0 0 14 90">
+        <rect x="5" y="5" width="4" height="70" fill="rgba(200,230,255,.3)" stroke="#b8d4e8" stroke-width="1"/>
+        <circle cx="7" cy="80" r="6" fill="#c30" stroke="#800" stroke-width="1"/>
+        <rect x="5" y="55" width="4" height="20" fill="#c30"/>
+      </symbol>`,
+    instSize:{w:14,h:90},
+  },
+  {
+    id:"burningSpoon", name:"燃烧匙", type:"tool",
+    capacity:0, heatable:true,
+    props:{材质:"铜",用途:"盛放固体在气体中燃烧"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-burningSpoon" viewBox="0 0 12 80">
+        <rect x="5" y="2" width="2" height="60" fill="#666"/>
+        <ellipse cx="6" cy="68" rx="6" ry="4" fill="#980" stroke="#640" stroke-width="1"/>
+      </symbol>`,
+    instSize:{w:12,h:80},
+  },
+  {
+    id:"ironWire", name:"铁丝(带火柴杆)", type:"tool",
+    capacity:0, heatable:true,
+    props:{材质:"铁",用途:"铁丝在氧气中燃烧实验"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-ironWire" viewBox="0 0 8 70">
+        <rect x="3.5" y="2" width="1" height="55" fill="#999"/>
+        <rect x="3" y="55" width="2" height="13" fill="#a60"/>
+      </symbol>`,
+    instSize:{w:8,h:70},
+  },
+  // ---------- 连接件 ----------
+  {
+    id:"tube", name:"导管", type:"connector",
+    capacity:0, heatable:false,
+    props:{材质:"玻璃",用途:"导气"},
+    ports:[{id:"end1",x:5,y:50,type:"open",dir:"left"},{id:"end2",x:95,y:50,type:"open",dir:"right"}],
+    symbol:`<symbol id="sym-tube" viewBox="0 0 100 12"><rect x="2" y="5" width="96" height="2" fill="rgba(200,230,255,.4)" stroke="#b8d4e8" stroke-width="0.5"/></symbol>`,
+    instSize:{w:100,h:12},
+  },
+  {
+    id:"rubberTube", name:"橡皮管", type:"connector",
+    capacity:0, heatable:false,
+    props:{材质:"橡胶",用途:"连接导管"},
+    ports:[{id:"end1",x:5,y:50,type:"open",dir:"left"},{id:"end2",x:95,y:50,type:"open",dir:"right"}],
+    symbol:`<symbol id="sym-rubberTube" viewBox="0 0 100 14"><rect x="2" y="5" width="96" height="4" fill="#222" stroke="#444" stroke-width="1" rx="2"/></symbol>`,
+    instSize:{w:100,h:14},
+  },
+  {
+    id:"rubberStopper", name:"橡皮塞", type:"connector",
+    capacity:0, heatable:false,
+    props:{材质:"橡胶",用途:"密封容器口，可穿导管"},
+    ports:[{id:"bottom",x:50,y:90,type:"open",dir:"down"}],
+    symbol:`<symbol id="sym-rubberStopper" viewBox="0 0 40 30"><path d="M5 5 L35 5 L33 25 L7 25 Z" fill="#331" stroke="#553" stroke-width="1"/><ellipse cx="20" cy="5" rx="15" ry="2" fill="#441"/></symbol>`,
+    instSize:{w:40,h:30},
+  },
+  {
+    id:"cottonBall", name:"棉花", type:"connector",
+    capacity:0, heatable:false,
+    props:{材质:"棉",用途:"堵试管口防止堵塞"},
+    ports:[],
+    symbol:`<symbol id="sym-cottonBall" viewBox="0 0 24 20"><ellipse cx="12" cy="10" rx="10" ry="7" fill="#fff" opacity=".8"/></symbol>`,
+    instSize:{w:24,h:20},
+  },
+  {
+    id:"glassPlate", name:"玻璃片", type:"connector",
+    capacity:0, heatable:false,
+    props:{材质:"玻璃",用途:"盖集气瓶口"},
+    ports:[],
+    symbol:`<symbol id="sym-glassPlate" viewBox="0 0 80 6"><rect x="2" y="1" width="76" height="4" fill="rgba(200,230,255,.4)" stroke="#b8d4e8" stroke-width="0.5"/></symbol>`,
+    instSize:{w:80,h:6},
+  },
+  // ---------- 夹具/支撑 ----------
+  {
+    id:"ironStand", name:"铁架台", type:"fixture",
+    capacity:0, heatable:false,
+    props:{材质:"铁",用途:"支撑固定器材"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-ironStand" viewBox="0 0 40 140">
+        <rect x="2" y="130" width="36" height="6" fill="#555" rx="2"/>
+        <rect x="8" y="10" width="4" height="125" fill="#666"/>
+        <rect x="12" y="40" width="28" height="3" fill="#666"/>
+        <rect x="12" y="80" width="28" height="3" fill="#666"/>
+      </symbol>`,
+    instSize:{w:40,h:140},
+  },
+  {
+    id:"testTubeClamp", name:"试管夹", type:"fixture",
+    capacity:0, heatable:false,
+    props:{材质:"木材+金属",用途:"夹持试管加热"},
+    ports:[],
+    symbol:`
+      <symbol id="sym-testTubeClamp" viewBox="0 0 50 20">
+        <path d="M2 8 L35 8 L38 4 L45 8 L45 14 L38 18 L35 14 L2 14 Z" fill="#864" stroke="#642" stroke-width="1"/>
+      </symbol>`,
+    instSize:{w:50,h:20},
+  },
+  {
+    id:"asbestosPad", name:"石棉网", type:"fixture",
+    capacity:0, heatable:true,
+    props:{材质:"铁+石棉",用途:"垫在容器下均匀受热"},
+    ports:[],
+    symbol:`<symbol id="sym-asbestosPad" viewBox="0 0 80 12"><rect x="2" y="2" width="76" height="8" fill="#aaa" stroke="#777" stroke-width="1"/><rect x="6" y="4" width="68" height="4" fill="#ccc"/></symbol>`,
+    instSize:{w:80,h:12},
+  },
+  // ---------- 试纸/指示剂 ----------
+  {
+    id:"phPaper", name:"pH试纸", type:"indicator",
+    capacity:0, heatable:false,
+    props:{材质:"纸",用途:"测酸碱度"},
+    ports:[],
+    symbol:`<symbol id="sym-phPaper" viewBox="0 0 30 8"><rect x="2" y="2" width="26" height="4" fill="#f4d03f" stroke="#999" stroke-width="0.5"/></symbol>`,
+    instSize:{w:30,h:8},
+  },
+  {
+    id:"litmusPaper", name:"石蕊试纸", type:"indicator",
+    capacity:0, heatable:false,
+    props:{材质:"纸",用途:"酸碱指示"},
+    ports:[],
+    symbol:`<symbol id="sym-litmusPaper" viewBox="0 0 30 8"><rect x="2" y="2" width="26" height="4" fill="#9b59b6" stroke="#777" stroke-width="0.5"/></symbol>`,
+    instSize:{w:30,h:8},
+  },
+  {
+    id:"filterPaper", name:"滤纸", type:"tool",
+    capacity:0, heatable:false,
+    props:{材质:"纸",用途:"过滤"},
+    ports:[],
+    symbol:`<symbol id="sym-filterPaper" viewBox="0 0 50 40"><path d="M5 5 L25 35 L45 5 Z" fill="#fff" opacity=".6" stroke="#bbb" stroke-width="0.5"/></symbol>`,
+    instSize:{w:50,h:40},
+  },
+  {
+    id:"match", name:"火柴", type:"heatSource",
+    capacity:0, heatable:false,
+    props:{材质:"木+磷",用途:"点燃"},
+    ports:[],
+    symbol:`<symbol id="sym-match" viewBox="0 0 8 40"><rect x="3.5" y="8" width="1" height="30" fill="#a86"/><rect x="3" y="3" width="2" height="6" fill="#c30"/></symbol>`,
+    instSize:{w:8,h:40},
+  },
+];
+</script>
+
+<!-- ============ 数据模块：药品 ============ -->
+<script>
+/* ============================================================
+   药品库 REAGENTS
+   ============================================================ */
+REAGENTS = [
+  // ---------- 固体 ----------
+  {id:"kmno4", name:"高锰酸钾", formula:"KMnO₄", state:"solid", color:"#4B0082", danger:"强氧化性，受热易分解", solubility:"易溶于水", props:{外观:"暗紫色晶体",用途:"制氧气、消毒剂"}},
+  {id:"kclo3", name:"氯酸钾", formula:"KClO₃", state:"solid", color:"#F5F5F5", danger:"强氧化性，与可燃物混合易爆", solubility:"溶于水", props:{外观:"白色晶体",用途:"制氧气"}},
+  {id:"mno2", name:"二氧化锰", formula:"MnO₂", state:"solid", color:"#1A1A1A", danger:"无毒", solubility:"不溶于水", props:{外观:"黑色粉末",用途:"催化剂"}},
+  {id:"caco3", name:"大理石(碳酸钙)", formula:"CaCO₃", state:"solid", color:"#E8E8E8", danger:"无毒", solubility:"不溶于水", props:{外观:"灰白色块状",用途:"制CO₂"}},
+  {id:"zn", name:"锌粒", formula:"Zn", state:"solid", color:"#C0C0C0", danger:"与酸反应产生易燃氢气", solubility:"不溶于水", props:{外观:"银白色金属",用途:"制氢气"}},
+  {id:"fe", name:"铁粉/铁丝", formula:"Fe", state:"solid", color:"#6B6B6B", danger:"无毒", solubility:"不溶于水", props:{外观:"银灰色金属",用途:"金属活动性、铁丝燃烧"}},
+  {id:"cu", name:"铜片", formula:"Cu", state:"solid", color:"#B87333", danger:"无毒", solubility:"不溶于水", props:{外观:"紫红色金属",用途:"金属活动性"}},
+  {id:"mg", name:"镁条", formula:"Mg", state:"solid", color:"#E0E0E0", danger:"易燃，燃烧时发出耀眼白光", solubility:"不溶于水", props:{外观:"银白色金属",用途:"镁条燃烧"}},
+  {id:"c", name:"木炭", formula:"C", state:"solid", color:"#1A1A1A", danger:"可燃", solubility:"不溶于水", props:{外观:"黑色固体",用途:"燃烧、还原剂"}},
+  {id:"s", name:"硫粉", formula:"S", state:"solid", color:"#E6D800", danger:"可燃，燃烧产生有毒SO₂", solubility:"不溶于水", props:{外观:"淡黄色粉末",用途:"硫燃烧"}},
+  {id:"p", name:"红磷", formula:"P", state:"solid", color:"#8B0000", danger:"可燃，燃烧产��大量白烟", solubility:"不溶于水", props:{外观:"暗红色粉末",用途:"燃烧、测定空气成分"}},
+  {id:"cuo", name:"氧化铜", formula:"CuO", state:"solid", color:"#1A1A1A", danger:"无毒", solubility:"不溶于水", props:{外观:"黑色粉末",用途:"被还原成铜"}},
+  {id:"nacl", name:"氯化钠", formula:"NaCl", state:"solid", color:"#FFFFFF", danger:"无毒", solubility:"易溶于水", props:{外观:"白色晶体",用途:"调味、配制溶液"}},
+  {id:"na2co3", name:"碳酸钠", formula:"Na₂CO₃", state:"solid", color:"#FFFFFF", danger:"弱碱性", solubility:"易溶于水", props:{外观:"白色粉末",用途:"制玻璃、洗涤剂"}},
+  {id:"nahco3", name:"碳酸氢钠", formula:"NaHCO₃", state:"solid", color:"#FFFFFF", danger:"无毒", solubility:"溶于水", props:{外观:"白色粉末",用途:"发酵粉、治胃酸"}},
+  {id:"fe2o3", name:"氧化铁", formula:"Fe₂O₃", state:"solid", color:"#A52A2A", danger:"无毒", solubility:"不溶于水", props:{外观:"红棕色粉末",用途:"炼铁原料"}},
+  {id:"cuoh2", name:"氢氧化铜", formula:"Cu(OH)₂", state:"solid", color:"#1E90FF", danger:"微毒", solubility:"不溶于水", props:{外观:"蓝色沉淀",用途:"沉淀反应"}},
+  {id:"feoh3", name:"氢氧化铁", formula:"Fe(OH)₃", state:"solid", color:"#8B4513", danger:"无毒", solubility:"不溶于水", props:{外观:"红褐色沉淀",用途:"沉淀反应"}},
+  {id:"baso4", name:"硫酸钡", formula:"BaSO₄", state:"solid", color:"#FFFFFF", danger:"无毒", solubility:"不溶于水", props:{外观:"白色沉淀",用途:"医学造影"}},
+  {id:"agcl", name:"氯化银", formula:"AgCl", state:"solid", color:"#FFFFFF", danger:"无毒", solubility:"不溶于水", props:{外观:"白色沉淀",用途:"检验氯离子"}},
+  {id:"caco3powder", name:"碳酸钙粉末", formula:"CaCO₃", state:"solid", color:"#F0F0F0", danger:"无毒", solubility:"不溶于水", props:{外观:"白色粉末",用途:"沉淀反应"}},
+  // ---------- 液体 ----------
+  {id:"h2o2", name:"过氧化氢溶液", formula:"H₂O₂", state:"liquid", color:"#F0F8FF", danger:"强氧化性，腐蚀", solubility:"-", props:{外观:"无色液体",用途:"制氧气、消毒"}},
+  {id:"hcl", name:"稀盐酸", formula:"HCl", state:"liquid", color:"#F0F8FF", danger:"腐蚀性", solubility:"-", props:{外观:"无色液体",用途:"制CO₂、H₂"}},
+  {id:"hcl-conc", name:"浓盐酸", formula:"HCl(浓)", state:"liquid", color:"#F0F8FF", danger:"强腐蚀性，挥发出白雾", solubility:"-", props:{外观:"无色发烟液体",用途:"强酸"}},
+  {id:"h2so4", name:"稀硫酸", formula:"H₂SO₄", state:"liquid", color:"#F0F8FF", danger:"腐蚀性", solubility:"-", props:{外观:"无色液体",用途:"制氢气"}},
+  {id:"h2so4-conc", name:"浓硫酸", formula:"H₂SO₄(浓)", state:"liquid", color:"#F0F8FF", danger:"强腐蚀性、强氧化性、脱水性", solubility:"-", props:{外观:"无色油状液体",用途:"干燥剂"}},
+  {id:"hno3", name:"稀硝酸", formula:"HNO₃", state:"liquid", color:"#F0F8FF", danger:"强腐蚀性、强氧化性", solubility:"-", props:{外观:"无色液体",用途:"强酸"}},
+  {id:"naoh", name:"氢氧化钠溶液", formula:"NaOH", state:"liquid", color:"#F0F8FF", danger:"强腐蚀性", solubility:"易溶", props:{外观:"无色液体",用途:"碱、中和反应"}},
+  {id:"caoh2", name:"澄清石灰水", formula:"Ca(OH)₂", state:"liquid", color:"#F0F8FF", danger:"弱腐蚀性", solubility:"微溶", props:{外观:"无色透明液体",用途:"检验CO₂"}},
+  {id:"cuso4", name:"硫酸铜溶液", formula:"CuSO₄", state:"liquid", color:"#1E90FF", danger:"有毒", solubility:"-", props:{外观:"蓝色溶液",用途:"置换反应、配制波尔多液"}},
+  {id:"fecl3", name:"氯化铁溶液", formula:"FeCl₃", state:"liquid", color:"#A52A2A", danger:"腐蚀性", solubility:"-", props:{外观:"黄色溶液",用途:"沉淀反应"}},
+  {id:"agno3", name:"硝酸银溶液", formula:"AgNO₃", state:"liquid", color:"#F0F8FF", danger:"腐蚀性，见光分解", solubility:"-", props:{外观:"无色液体",用途:"检验氯离子"}},
+  {id:"bacl2", name:"氯化钡溶液", formula:"BaCl₂", state:"liquid", color:"#F0F8FF", danger:"剧毒", solubility:"-", props:{外观:"无色液体",用途:"检验硫酸根"}},
+  {id:"phenolphthalein", name:"酚酞试液", formula:"C₂₀H₁₄O₄", state:"liquid", color:"#F0F8FF", danger:"无毒", solubility:"-", props:{外观:"无色液体",用途:"酸碱指示剂，遇碱变红"}},
+  {id:"litmus", name:"紫色石蕊试液", formula:"-", state:"liquid", color:"#9B59B6", danger:"无毒", solubility:"-", props:{外观:"紫色液体",用途:"酸碱指示剂，遇酸红遇碱蓝"}},
+  {id:"h2o", name:"蒸馏水", formula:"H₂O", state:"liquid", color:"#F0F8FF", danger:"无毒", solubility:"-", props:{外观:"无色液体",用途:"溶剂、配制溶液"}},
+  {id:"nacl-solution", name:"食盐水", formula:"NaCl(aq)", state:"liquid", color:"#F0F8FF", danger:"无毒", solubility:"-", props:{外观:"无色液体",用途:"溶液"}},
+  // ---------- 气体 ----------
+  {id:"o2", name:"氧气", formula:"O₂", state:"gas", color:"#F0F8FF", danger:"助燃", solubility:"不易溶", props:{外观:"无色无味气体",用途:"支持燃烧、呼吸"}},
+  {id:"co2", name:"二氧化碳", formula:"CO₂", state:"gas", color:"#F0F8FF", danger:"不燃、不助燃、高浓度窒息", solubility:"能溶", props:{外观:"无色无味气体",用途:"灭火、光合作用"}},
+  {id:"h2", name:"氢气", formula:"H₂", state:"gas", color:"#F0F8FF", danger:"易燃易爆", solubility:"难溶", props:{外观:"无色无味气体",用途:"燃料、还原剂"}},
+  {id:"n2", name:"氮气", formula:"N₂", state:"gas", color:"#F0F8FF", danger:"惰性、高浓度窒息", solubility:"难溶", props:{外观:"无色无味气体",用途:"保护气"}},
+  {id:"co", name:"一氧化碳", formula:"CO", state:"gas", color:"#F0F8FF", danger:"剧毒", solubility:"难溶", props:{外观:"无色无味气体",用途:"燃料、还原剂"}},
+  {id:"ch4", name:"甲烷", formula:"CH₄", state:"gas", color:"#F0F8FF", danger:"易燃易爆", solubility:"难溶", props:{外观:"无色无味气体",用途:"天然气主要成分"}},
+  {id:"so2", name:"二氧化硫", formula:"SO₂", state:"gas", color:"#F0F8FF", danger:"有毒、刺激", solubility:"易溶", props:{外观:"无色刺激气味气体",用途:"漂白"}},
+  {id:"nh3", name:"氨气", formula:"NH₃", state:"gas", color:"#F0F8FF", danger:"刺激、腐蚀", solubility:"极易溶", props:{外观:"无色刺激气味气体",用途:"制冷、化肥"}},
+];
+</script>
+
+<!-- ============ 数据模块：反应规则 ============ -->
+<script>
+/* ============================================================
+   反应规则库 REACTIONS
+   conditions: heat | ignite | mix | electrolyze | passThrough(导气通过)
+   phenomena: flame | color | bubble | precipitate | smoke | glow | dissolve
+   ============================================================ */
+REACTIONS = [
+  // ---------- 氧气制取 ----------
+  {
+    id:"r_o2_kmno4", equation:"2KMnO₄ —Δ→ K₂MnO₄ + MnO₂ + O₂↑",
+    reactants:[{id:"kmno4"}], conditions:["heat"],
+    products:[{id:"o2"},{id:"mno2"}],
+    phenomena:[{type:"bubble",desc:"产生气体",color:"#87CEEB"},{type:"color",from:"#4B0082",to:"#1A1A1A",desc:"紫色变黑"}],
+    tip:"高锰酸钾加热分解制氧气，试管口要塞棉花"
+  },
+  {
+    id:"r_o2_kclo3", equation:"2KClO₃ —Δ,MnO₂→ 2KCl + 3O₂↑",
+    reactants:[{id:"kclo3"},{id:"mno2"}], conditions:["heat"],
+    products:[{id:"o2"}],
+    phenomena:[{type:"bubble",desc:"产生气体",color:"#87CEEB"}],
+    tip:"氯酸钾+二氧化锰催化制氧气"
+  },
+  {
+    id:"r_o2_h2o2", equation:"2H₂O₂ —MnO₂→ 2H₂O + O₂↑",
+    reactants:[{id:"h2o2"},{id:"mno2"}], conditions:["mix"],
+    products:[{id:"o2"},{id:"h2o"}],
+    phenomena:[{type:"bubble",desc:"产生大量气泡",color:"#87CEEB"},{type:"color",from:"#F0F8FF",to:"#1A1A1A",desc:"出现黑色粉末"}],
+    tip:"过氧化氢+二氧化锰催化制氧气，不需加热"
+  },
+  // ---------- 氧气性质（燃烧） ----------
+  {
+    id:"r_fe_o2", equation:"3Fe + 2O₂ —点燃→ Fe₃O₄",
+    reactants:[{id:"fe"},{id:"o2"}], conditions:["ignite"],
+    products:[{id:"fe2o3"}],
+    phenomena:[{type:"flame",color:"#FFFF00",desc:"铁丝剧烈燃烧，火星四射"},{type:"color",from:"#6B6B6B",to:"#1A1A1A",desc:"生成黑色固体"}],
+    tip:"铁丝在氧气中燃烧，火星四射，生成黑色Fe₃O₄"
+  },
+  {
+    id:"r_c_o2", equation:"C + O₂ —点燃→ CO₂",
+    reactants:[{id:"c"},{id:"o2"}], conditions:["ignite"],
+    products:[{id:"co2"}],
+    phenomena:[{type:"flame",color:"#FFFFFF",desc:"木炭燃烧发出白光"},{type:"color",from:"#1A1A1A",to:"#FF4500",desc:"木炭发红"}],
+    tip:"木炭在氧气中燃烧发出白光"
+  },
+  {
+    id:"r_s_o2", equation:"S + O₂ —点燃→ SO₂",
+    reactants:[{id:"s"},{id:"o2"}], conditions:["ignite"],
+    products:[{id:"so2"}],
+    phenomena:[{type:"flame",color:"#6495ED",desc:"硫在氧气中燃烧发出明亮的蓝紫色火焰"},{type:"smoke",color:"#FFFFFF",desc:"产生有刺激气味的气体"}],
+    tip:"硫在氧气中燃烧，蓝紫色火焰，生成有毒SO₂"
+  },
+  {
+    id:"r_mg_o2", equation:"2Mg + O₂ —点燃→ 2MgO",
+    reactants:[{id:"mg"},{id:"o2"}], conditions:["ignite"],
+    products:[{id:"fe2o3"}],  // 借用，实际为MgO
+    phenomena:[{type:"flame",color:"#FFFFFF",desc:"镁条燃烧发出耀眼白光"},{type:"smoke",color:"#FFFFFF",desc:"产生白色固体"}],
+    tip:"镁条在空气中燃烧，耀眼白光"
+  },
+  {
+    id:"r_h2_o2", equation:"2H₂ + O₂ —点燃→ 2H₂O",
+    reactants:[{id:"h2"},{id:"o2"}], conditions:["ignite"],
+    products:[{id:"h2o"}],
+    phenomena:[{type:"flame",color:"#0000FF",desc:"氢气在氧气中燃烧产生淡蓝色火焰"},{type:"bubble",desc:"瓶壁出现水雾"}],
+    tip:"氢气在氧气中燃烧，淡蓝色火焰，生成水"
+  },
+  // ---------- 二氧化碳制取 ----------
+  {
+    id:"r_co2_caco3_hcl", equation:"CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑",
+    reactants:[{id:"caco3"},{id:"hcl"}], conditions:["mix"],
+    products:[{id:"co2"},{id:"h2o"}],
+    phenomena:[{type:"bubble",desc:"产生大量气泡",color:"#87CEEB"},{type:"dissolve",desc:"大理石逐渐溶解"}],
+    tip:"大理石+稀盐酸制CO₂，不能用稀硫酸（会生成微溶物阻止反应）"
+  },
+  // ---------- 二氧化碳性质 ----------
+  {
+    id:"r_co2_caoh2", equation:"CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O",
+    reactants:[{id:"co2"},{id:"caoh2"}], conditions:["mix"],
+    products:[{id:"caco3powder"},{id:"h2o"}],
+    phenomena:[{type:"precipitate",color:"#F0F0F0",desc:"澄清石灰水变浑浊"},{type:"color",from:"#F0F8FF",to:"#F0F0F0",desc:"液体变浑浊"}],
+    tip:"CO₂通入澄清石灰水变浑浊，这是检验CO₂的方法"
+  },
+  {
+    id:"r_co2_litmus", equation:"CO₂ + H₂O → H₂CO₃",
+    reactants:[{id:"co2"},{id:"h2o"},{id:"litmus"}], conditions:["mix"],
+    products:[],
+    phenomena:[{type:"color",from:"#9B59B6",to:"#E74C3C",desc:"紫色石蕊变红"}],
+    tip:"CO₂溶于水生成碳酸，使紫色石蕊变红"
+  },
+  // ---------- 氢气制取 ----------
+  {
+    id:"r_h2_zn_h2so4", equation:"Zn + H₂SO₄ → ZnSO₄ + H₂↑",
+    reactants:[{id:"zn"},{id:"h2so4"}], conditions:["mix"],
+    products:[{id:"h2"}],
+    phenomena:[{type:"bubble",desc:"锌粒表面产生大量气泡",color:"#87CEEB"},{type:"dissolve",desc:"锌粒逐渐溶解"}],
+    tip:"锌+稀硫酸制氢气，不能用品位太活泼的镁或太不活泼的铜"
+  },
+  {
+    id:"r_h2_zn_hcl", equation:"Zn + 2HCl → ZnCl₂ + H₂↑",
+    reactants:[{id:"zn"},{id:"hcl"}], conditions:["mix"],
+    products:[{id:"h2"}],
+    phenomena:[{type:"bubble",desc:"锌粒表面产生气泡",color:"#87CEEB"},{type:"dissolve",desc:"锌粒逐渐溶解"}],
+    tip:"锌+稀盐酸也可制氢气"
+  },
+  // ---------- 氢气还原氧化铜 ----------
+  {
+    id:"r_h2_cuo", equation:"H₂ + CuO —Δ→ Cu + H₂O",
+    reactants:[{id:"h2"},{id:"cuo"}], conditions:["heat"],
+    products:[{id:"cu"},{id:"h2o"}],
+    phenomena:[{type:"color",from:"#1A1A1A",to:"#B87333",desc:"黑色粉末变紫红色"},{type:"bubble",desc:"试管口有水滴"}],
+    tip:"氢气还原氧化铜，黑色变紫红色，注意先通氢气后加热"
+  },
+  // ---------- 木炭还原氧化铜 ----------
+  {
+    id:"r_c_cuo", equation:"2CuO + C —Δ→ 2Cu + CO₂↑",
+    reactants:[{id:"c"},{id:"cuo"}], conditions:["heat"],
+    products:[{id:"cu"},{id:"co2"}],
+    phenomena:[{type:"color",from:"#1A1A1A",to:"#B87333",desc:"黑色粉末变红"},{type:"bubble",desc:"产生气体"}],
+    tip:"木炭还原氧化铜，黑色变红，产生CO₂"
+  },
+  // ---------- 一氧化碳还原氧化铜 ----------
+  {
+    id:"r_co_cuo", equation:"CO + CuO —Δ→ Cu + CO₂",
+    reactants:[{id:"co"},{id:"cuo"}], conditions:["heat"],
+    products:[{id:"cu"},{id:"co2"}],
+    phenomena:[{type:"color",from:"#1A1A1A",to:"#B87333",desc:"黑色变红"}],
+    tip:"CO还原氧化铜，注意CO有毒需尾气处理"
+  },
+  // ---------- 金属活动性 ----------
+  {
+    id:"r_fe_cuso4", equation:"Fe + CuSO₄ → FeSO₄ + Cu",
+    reactants:[{id:"fe"},{id:"cuso4"}], conditions:["mix"],
+    products:[{id:"cu"}],
+    phenomena:[{type:"color",from:"#1E90FF",to:"#A52A2A",desc:"蓝色溶液变浅，铁丝表面析出红色铜"},{type:"precipitate",color:"#B87333",desc:"铁丝表面附着一层红色物质"}],
+    tip:"铁置换硫酸铜中的铜，溶液蓝色变浅"
+  },
+  {
+    id:"r_zn_cuso4", equation:"Zn + CuSO₄ → ZnSO₄ + Cu",
+    reactants:[{id:"zn"},{id:"cuso4"}], conditions:["mix"],
+    products:[{id:"cu"}],
+    phenomena:[{type:"color",from:"#1E90FF",to:"#87CEEB",desc:"蓝色溶液褪色"},{type:"precipitate",color:"#B87333",desc:"锌表面析出红色铜"}],
+    tip:"锌置换硫酸铜中的铜"
+  },
+  {
+    id:"r_fe_hcl", equation:"Fe + 2HCl → FeCl₂ + H₂↑",
+    reactants:[{id:"fe"},{id:"hcl"}], conditions:["mix"],
+    products:[{id:"h2"}],
+    phenomena:[{type:"bubble",desc:"产生气泡",color:"#87CEEB"},{type:"color",from:"#F0F8FF",to:"#A0C0A0",desc:"溶液变浅绿色"}],
+    tip:"铁+稀盐酸产生氢气，溶液变浅绿色（Fe²⁺）"
+  },
+  {
+    id:"r_mg_hcl", equation:"Mg + 2HCl → MgCl₂ + H₂↑",
+    reactants:[{id:"mg"},{id:"hcl"}], conditions:["mix"],
+    products:[{id:"h2"}],
+    phenomena:[{type:"bubble",desc:"剧烈反应产生大量气泡",color:"#87CEEB"}],
+    tip:"镁+稀盐酸反应剧烈"
+  },
+  {
+    id:"r_cu_hcl", equation:"Cu + HCl → 不反应",
+    reactants:[{id:"cu"},{id:"hcl"}], conditions:["mix"],
+    products:[],
+    phenomena:[],
+    tip:"铜不与稀盐酸反应（铜活动性排在氢后）",
+    noReaction:true
+  },
+  // ---------- 酸碱中和 ----------
+  {
+    id:"r_hcl_naoh", equation:"HCl + NaOH → NaCl + H₂O",
+    reactants:[{id:"hcl"},{id:"naoh"}], conditions:["mix"],
+    products:[{id:"nacl"},{id:"h2o"}],
+    phenomena:[{type:"color",from:"#F0F8FF",to:"#F0F8FF",desc:"无明显变化（放热）"}],
+    tip:"盐酸+氢氧化钠中和，无明显现象，需要指示剂"
+  },
+  {
+    id:"r_hcl_naoh_phen", equation:"HCl + NaOH → NaCl + H₂O",
+    reactants:[{id:"hcl"},{id:"naoh"},{id:"phenolphthalein"}], conditions:["mix"],
+    products:[{id:"nacl"},{id:"h2o"}],
+    phenomena:[{type:"color",from:"#FF1493",to:"#F0F8FF",desc:"红色逐渐褪为无色"}],
+    tip:"碱中加酚酞变红，滴入酸至中和后红色褪去"
+  },
+  // ---------- 沉淀反应 ----------
+  {
+    id:"r_cuso4_naoh", equation:"CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄",
+    reactants:[{id:"cuso4"},{id:"naoh"}], conditions:["mix"],
+    products:[{id:"cuoh2"}],
+    phenomena:[{type:"precipitate",color:"#1E90FF",desc:"生成蓝色沉淀"},{type:"color",from:"#1E90FF",to:"#87CEEB",desc:"溶液颜色变浅"}],
+    tip:"硫酸铜+氢氧化钠生成蓝色氢氧化铜沉淀"
+  },
+  {
+    id:"r_fecl3_naoh", equation:"FeCl₃ + 3NaOH → Fe(OH)₃↓ + 3NaCl",
+    reactants:[{id:"fecl3"},{id:"naoh"}], conditions:["mix"],
+    products:[{id:"feoh3"}],
+    phenomena:[{type:"precipitate",color:"#8B4513",desc:"生成红褐色沉淀"}],
+    tip:"氯化铁+氢氧化钠生成红褐色氢氧化铁沉淀"
+  },
+  {
+    id:"r_agno3_hcl", equation:"AgNO₃ + HCl → AgCl↓ + HNO₃",
+    reactants:[{id:"agno3"},{id:"hcl"}], conditions:["mix"],
+    products:[{id:"agcl"}],
+    phenomena:[{type:"precipitate",color:"#FFFFFF",desc:"生成白色沉淀"}],
+    tip:"硝酸银+稀盐酸生成不溶于硝酸的白色AgCl沉淀（检验氯离子）"
+  },
+  {
+    id:"r_bacl2_h2so4", equation:"BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl",
+    reactants:[{id:"bacl2"},{id:"h2so4"}], conditions:["mix"],
+    products:[{id:"baso4"}],
+    phenomena:[{type:"precipitate",color:"#FFFFFF",desc:"生成白色沉淀"}],
+    tip:"氯化钡+稀硫酸生成不溶于硝酸的白色BaSO₄沉淀（检验硫酸根）"
+  },
+  // ---------- 电解水 ----------
+  {
+    id:"r_water_electrolysis", equation:"2H₂O —通电→ 2H₂↑ + O₂↑",
+    reactants:[{id:"h2o"}], conditions:["electrolyze"],
+    products:[{id:"h2"},{id:"o2"}],
+    phenomena:[{type:"bubble",desc:"两极都有气泡产生",color:"#87CEEB"},{type:"glow",desc:"阳极气体体积是阴极的一半"}],
+    tip:"电解水：阳极（+）得氧气，阴极（-）得氢气，体积比1:2"
+  },
+  // ---------- 碳酸盐与酸 ----------
+  {
+    id:"r_na2co3_hcl", equation:"Na₂CO₃ + 2HCl → 2NaCl + H₂O + CO₂↑",
+    reactants:[{id:"na2co3"},{id:"hcl"}], conditions:["mix"],
+    products:[{id:"co2"},{id:"h2o"}],
+    phenomena:[{type:"bubble",desc:"产生大量气泡",color:"#87CEEB"}],
+    tip:"碳酸钠+盐酸产生CO₂"
+  },
+  // ---------- 其他常用 ----------
+  {
+    id:"r_caoh2_na2co3", equation:"Ca(OH)₂ + Na₂CO₃ → CaCO₃↓ + 2NaOH",
+    reactants:[{id:"caoh2"},{id:"na2co3"}], conditions:["mix"],
+    products:[{id:"caco3powder"}],
+    phenomena:[{type:"precipitate",color:"#F0F0F0",desc:"生成白色沉淀"}],
+    tip:"石灰水+碳酸钠生成白色沉淀（制烧碱原理）"
+  },
+];
+</script>
+
+<!-- ============ 数据模块：实验模板 ============ -->
+<script>
+/* ============================================================
+   实验模板库 TEMPLATES（阶段二启用，先定义）
+   ============================================================ */
+TEMPLATES = [
+  {
+    id:"t_o2_kmno4", title:"高锰酸钾加热制取氧气", grade:"九上·第二单元",
+    steps:[
+      "检查装置气密性",
+      "装药品：试管中加高锰酸钾，管口塞棉花",
+      "固定试管（口略向下倾斜）",
+      "加热：先预热再集中加热",
+      "收集：排水法收集氧气",
+      "验满：带火星木条放在集气瓶口"
+    ],
+    reagents:["kmno4"], equipments:["testTube","alcoholLamp","tube","gasJar","waterTrough","cottonBall","ironStand"],
+    checkpoints:["导管口连续均匀气泡","带火星木条复燃"],
+    note:"口向下倾斜防止冷凝水倒流炸裂试管"
+  },
+  {
+    id:"t_o2_h2o2", title:"过氧化氢+二氧化锰制氧气", grade:"九上·第二单元",
+    steps:["锥形瓶加二氧化锰","长颈漏斗加过氧化氢溶液","收集氧气"],
+    reagents:["h2o2","mno2"], equipments:["flaskErlenmeyer","dropper","tube","gasJar","waterTrough"],
+    checkpoints:["导管口有气泡","带火星木条复燃"],
+    note:"二氧化锰是催化剂，不需加热"
+  },
+  {
+    id:"t_co2", title:"大理石+稀盐酸制取二氧化碳", grade:"九上·第六单元",
+    steps:["锥形瓶加大理石","长颈漏斗加稀盐酸","收集：向上排空气法","验满：燃着木条放瓶口"],
+    reagents:["caco3","hcl"], equipments:["flaskErlenmeyer","dropper","tube","gasJar"],
+    checkpoints:["大理石表面有气泡","燃着木条熄灭"],
+    note:"不能用稀硫酸（CaSO₄微溶阻止反应），不能用浓盐酸（挥发）"
+  },
+  {
+    id:"t_co2_caoh2", title:"二氧化碳通入澄清石灰水", grade:"九上·第六单元",
+    steps:["试管加澄清石灰水","通入CO₂","观察"],
+    reagents:["co2","caoh2"], equipments:["testTube","tube"],
+    checkpoints:["石灰水变浑浊"],
+    note:"检验CO₂的标准方法"
+  },
+  {
+    id:"t_h2_zn", title:"锌+稀硫酸制取氢气", grade:"九下·第八单元",
+    steps:["试管加锌粒","加稀硫酸","收集：排水法/向下排空气法","验纯：收集后点燃听声音"],
+    reagents:["zn","h2so4"], equipments:["testTube","tube","gasJar","waterTrough"],
+    checkpoints:["锌粒表面有气泡","验纯：噗声=纯，尖啸=不纯"],
+    note:"不能用镁（太活泼）、铜（不反应）"
+  },
+  {
+    id:"t_fe_o2", title:"铁丝在氧气中燃烧", grade:"九上·第二单元",
+    steps:["集气瓶底装少量水或铺细沙","铁丝系火柴杆点燃","火柴快燃尽时伸入氧气瓶","观察"],
+    reagents:["fe","o2"], equipments:["gasJar","ironWire","match"],
+    checkpoints:["铁丝剧烈燃烧","火星四射","生成黑色固体"],
+    note:"瓶底装水防止炸裂"
+  },
+  {
+    id:"t_neutral", title:"盐酸与氢氧化钠中和反应", grade:"九下·第十单元",
+    steps:["烧杯加氢氧化钠溶液","滴入酚酞变红","用滴管慢慢加盐酸","搅拌至红色恰好褪去"],
+    reagents:["naoh","phenolphthalein"], equipments:["beaker","dropper","glassRod"],
+    checkpoints:["加酚酞后变红","加盐酸至红色褪去"],
+    note:"需要指示剂才能看到现象"
+  },
+  {
+    id:"t_metal_activity", title:"金属活动性探究", grade:"九下·第八单元",
+    steps:["三支试管分别加稀盐酸","分别投入镁、锌、铁、铜","观察气泡产生快慢"],
+    reagents:["mg","zn","fe","cu","hcl"], equipments:["testTube","testTubeClamp"],
+    checkpoints:["镁>锌>铁>铜（气泡由多到少）","铜无气泡"],
+    note:"活动性：Mg>Zn>Fe>(H)>Cu"
+  },
+  {
+    id:"t_cuo_h2", title:"氢气还原氧化铜", grade:"九下·第八单元",
+    steps:["试管加氧化铜粉末","先通入氢气排尽空气","再加热至黑色变红","停止加热继续通氢气至冷却"],
+    reagents:["cuo","h2"], equipments:["testTube","alcoholLamp","tube"],
+    checkpoints:["黑色粉末变紫红色","试管口有水滴"],
+    note:"先通氢气后加热，先停加热后停氢气（防爆炸）"
+  },
+  {
+    id:"t_water_electrolysis", title:"电解水实验", grade:"九上·第三单元",
+    steps:["水电解器通电","观察两极气泡","收集气体检验"],
+    reagents:["h2o"], equipments:["testTube"],
+    checkpoints:["阳极气体使带火星木条复燃（O₂）","阴极气体可燃烧（H₂）","体积比1:2"],
+    note:"证明水由氢、氧组成"
+  },
+];
+</script>
+
+<!-- ============ 主逻辑模块 ============ -->
+<script>
+/* ============================================================
+   主逻辑：工作台、反应引擎、UI 交互
+   ============================================================ */
+
+/* ---------- 画布初始化 ---------- */
+const canvas = $("#canvas");
+const defs = $("#canvas-defs");
+const layerConn = $("#layer-connections");
+const layerEquip = $("#layer-equip");
+const layerUI = $("#layer-ui");
+
+// 注入器材 symbol
+EQUIPMENT.forEach(eq=>{
+  defs.insertAdjacentHTML("beforeend", eq.symbol);
+});
+
+/* ---------- 左栏渲染 ---------- */
+function renderLeftList(){
+  const list = $("#left-list");
+  const search = $("#left-search").value.trim().toLowerCase();
+  list.innerHTML = "";
+  
+  let items = [];
+  if(state.leftTab === "equip"){
+    items = EQUIPMENT.filter(eq=> !search || eq.name.toLowerCase().includes(search) || eq.id.includes(search))
+      .map(eq=>({
+        id:eq.id, name:eq.name, sub:eq.props.用途||eq.type,
+        icon:`<svg viewBox="${eq.symbol.match(/viewBox="([^"]+)"/)[1]}"><use href="#sym-${eq.id}"/></svg>`,
+        onClick:()=>addEquipment(eq.id)
+      }));
+  } else if(state.leftTab === "reagent"){
+    items = REAGENTS.filter(r=> !search || r.name.toLowerCase().includes(search) || r.formula.toLowerCase().includes(search))
+      .map(r=>({
+        id:r.id, name:r.name, sub:r.formula,
+        badge:`<span class="badge ${r.state}">${r.state==="solid"?"固":r.state==="liquid"?"液":"气"}</span>`,
+        icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${r.color}" stroke="#fff" stroke-width="1" opacity=".7"/></svg>`,
+        onClick:()=>addReagentToSelected(r.id)
+      }));
+  } else if(state.leftTab === "template"){
+    items = TEMPLATES.filter(t=> !search || t.title.toLowerCase().includes(search))
+      .map(t=>({
+        id:t.id, name:t.title, sub:t.grade, isTemplate:true,
+        onClick:()=>loadTemplate(t.id)
+      }));
+    list.innerHTML = items.map(it=>`
+      <div class="template-item" data-id="${it.id}">
+        <div class="t-title">${it.name}</div>
+        <div class="t-grade">${it.sub}</div>
+      </div>
+    `).join("");
+    list.querySelectorAll(".template-item").forEach(el=>{
+      el.onclick = ()=>{
+        const item = items.find(i=>i.id===el.dataset.id);
+        if(item) item.onClick();
+      };
+    });
+    return;
+  }
+  
+  list.innerHTML = items.map(it=>`
+    <div class="list-item" data-id="${it.id}">
+      <div class="icon">${it.icon||""}</div>
+      <div class="meta">
+        <div class="name">${it.name}</div>
+        <div class="sub">${it.sub||""}</div>
+      </div>
+      ${it.badge||""}
+    </div>
+  `).join("");
+  list.querySelectorAll(".list-item").forEach(el=>{
+    el.onclick = ()=>{
+      const item = items.find(i=>i.id===el.dataset.id);
+      if(item) item.onClick();
+    };
+  });
+}
+
+/* ---------- 工作台：添加器材 ---------- */
+function addEquipment(eqId, x, y){
+  const eq = EQUIPMENT.find(e=>e.id===eqId);
+  if(!eq) return;
+  const inst = {
+    id: state.nextId++,
+    eqId: eq.id,
+    name: eq.name,
+    x: x !== undefined ? x : 200 + Math.random()*200,
+    y: y !== undefined ? y : 100 + Math.random()*100,
+    reagents: [],  // [{id, qty}]
+    heated: false,  // 加热中
+    ignited: false,  // 点燃中
+    rotation: 0,
+  };
+  state.instances.push(inst);
+  renderCanvas();
+  updateStatus();
+  addReport("添加器材", `${eq.name}`);
+  $("#canvas-hint").style.display = "none";
+  return inst;
+}
+
+/* ---------- 工作台渲染 ---------- */
+function renderCanvas(){
+  layerEquip.innerHTML = "";
+  layerConn.innerHTML = "";
+  
+  // 渲染连接
+  state.connections.forEach(c=>{
+    const from = state.instances.find(i=>i.id===c.fromInstId);
+    const to = state.instances.find(i=>i.id===c.toInstId);
+    if(!from || !to) return;
+    const fromEq = EQUIPMENT.find(e=>e.id===from.eqId);
+    const toEq = EQUIPMENT.find(e=>e.id===to.eqId);
+    const fp = fromEq.ports.find(p=>p.id===c.fromPortId);
+    const tp = toEq.ports.find(p=>p.id===c.toPortId);
+    if(!fp || !tp) return;
+    const x1 = from.x + fp.x/100*fromEq.instSize.w;
+    const y1 = from.y + fp.y/100*fromEq.instSize.h;
+    const x2 = to.x + tp.x/100*toEq.instSize.w;
+    const y2 = to.y + tp.y/100*toEq.instSize.h;
+    const mx = (x1+x2)/2;
+    const path = svgEl("path", {
+      d:`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`,
+      class:"connection-path"
+    });
+    path.onclick = (e)=>{
+      e.stopPropagation();
+      if(state.tool === "delete"){
+        state.connections = state.connections.filter(cc=>!(cc===c));
+        renderCanvas();
+        toast("已删除连接");
+      }
+    };
+    layerConn.appendChild(path);
+  });
+  
+  // 渲染器材实例
+  state.instances.forEach(inst=>{
+    const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+    if(!eq) return;
+    const g = svgEl("g", {
+      class:"equip-instance"+(state.selectedId===inst.id?" selected":""),
+      transform:`translate(${inst.x},${inst.y})`,
+      "data-id": inst.id
+    });
+    
+    // 器材图形
+    const use = svgEl("use", {href:`#sym-${eq.id}`, width:eq.instSize.w, height:eq.instSize.h});
+    g.appendChild(use);
+    
+    // 液体/药品显示
+    renderInstanceContents(g, inst, eq);
+    
+    // 加热/点燃效果
+    if(inst.heated){
+      const flame = svgEl("path", {
+        d:`M${eq.instSize.w/2-6},${eq.instSize.h+5} Q${eq.instSize.w/2},${eq.instSize.h-5} ${eq.instSize.w/2+6},${eq.instSize.h+5} Z`,
+        fill:"#fb923c", opacity:"0.8", class:"flame"
+      });
+      g.appendChild(flame);
+    }
+    if(inst.ignited){
+      // 点燃效果在 mouth 处
+      const port = eq.ports.find(p=>p.type==="open"||p.type==="flame");
+      if(port){
+        const fx = port.x/100*eq.instSize.w;
+        const fy = port.y/100*eq.instSize.h;
+        const flame = svgEl("ellipse", {
+          cx:fx, cy:fy-8, rx:5, ry:10, fill:"#fb923c", opacity:"0.8", class:"flame"
+        });
+        g.appendChild(flame);
+      }
+    }
+    
+    // ports（连接模式时显示）
+    if(state.tool === "connect"){
+      eq.ports.forEach(p=>{
+        const cx = p.x/100*eq.instSize.w;
+        const cy = p.y/100*eq.instSize.h;
+        const isLinkingFrom = state.linkingFrom && state.linkingFrom.instId===inst.id && state.linkingFrom.portId===p.id;
+        const port = svgEl("circle", {
+          cx, cy, r:4, class:"port"+(isLinkingFrom?" linking":"")
+        });
+        port.onclick = (e)=>{
+          e.stopPropagation();
+          handlePortClick(inst.id, p.id);
+        };
+        g.appendChild(port);
+      });
+    }
+    
+    // 拖拽和点击
+    g.onpointerdown = (e)=>{
+      e.stopPropagation();
+      if(state.tool === "select"){
+        selectInstance(inst.id);
+        startDrag(e, inst, g);
+      } else if(state.tool === "delete"){
+        deleteInstance(inst.id);
+      } else if(state.tool === "heat"){
+        toggleHeat(inst.id);
+      } else if(state.tool === "ignite"){
+        toggleIgnite(inst.id);
+      } else if(state.tool === "connect"){
+        // 点器材本身不处理，要点 port
+        selectInstance(inst.id);
+      } else if(state.tool === "pour"){
+        pourFrom(inst.id);
+      } else if(state.tool === "check-seal"){
+        checkSeal(inst.id);
+      } else if(state.tool === "collect-gas"){
+        collectGas(inst.id);
+      } else if(state.tool === "stir"){
+        stir(inst.id);
+      }
+    };
+    
+    layerEquip.appendChild(g);
+  });
+}
+
+/* ---------- 渲染器材内药品 ---------- */
+function renderInstanceContents(g, inst, eq){
+  if(inst.reagents.length === 0) return;
+  const w = eq.instSize.w;
+  const h = eq.instSize.h;
+  // 容器内液体
+  const liquids = inst.reagents.filter(r=>{
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    return rg && rg.state === "liquid";
+  });
+  const solids = inst.reagents.filter(r=>{
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    return rg && rg.state === "solid";
+  });
+  
+  // 液体（取第一个液体的颜色作为整体颜色，或混合色）
+  if(liquids.length>0 && eq.type === "container"){
+    const rg = REAGENTS.find(x=>x.id===liquids[0].id);
+    let liquidColor = rg.color;
+    // 酚酞遇碱变红
+    if(inst.reagents.some(r=>r.id==="phenolphthalein") && inst.reagents.some(r=>r.id==="naoh")){
+      liquidColor = "#FF1493";
+    }
+    // 石蕊遇酸变红
+    if(inst.reagents.some(r=>r.id==="litmus") && inst.reagents.some(r=>r.id==="hcl"||r.id==="h2so4")){
+      liquidColor = "#E74C3C";
+    }
+    // 沉淀混合色
+    const hasBluePpt = inst.reagents.some(r=>r.id==="cuoh2");
+    if(hasBluePpt) liquidColor = "#1E90FF";
+    const hasBrownPpt = inst.reagents.some(r=>r.id==="feoh3");
+    if(hasBrownPpt) liquidColor = "#8B4513";
+    const hasWhitePpt = inst.reagents.some(r=>r.id==="agcl"||r.id==="baso4"||r.id==="caco3powder");
+    if(hasWhitePpt) liquidColor = "#E8E8E8";
+    
+    // 容器底部画液体
+    let liquidY, liquidH, liquidX, liquidW;
+    if(eq.id === "testTube"){
+      liquidY = 70; liquidH = 35; liquidX = 18; liquidW = w-36;
+    } else if(eq.id === "beaker"){
+      liquidY = 30; liquidH = 50; liquidX = 12; liquidW = w-24;
+    } else if(eq.id === "flaskErlenmeyer" || eq.id === "flaskRound" || eq.id === "flaskFlat"){
+      liquidY = 60; liquidH = 30; liquidX = 15; liquidW = w-30;
+    } else if(eq.id === "gasJar"){
+      liquidY = 20; liquidH = 70; liquidX = 14; liquidW = w-28;
+    } else if(eq.id === "waterTrough"){
+      liquidY = 35; liquidH = 28; liquidX = 10; liquidW = w-20;
+    } else if(eq.id === "measuringCylinder"){
+      liquidY = 50; liquidH = 40; liquidX = 12; liquidW = w-24;
+    } else if(eq.id === "evaporatingDish"){
+      liquidY = 12; liquidH = 10; liquidX = 12; liquidW = w-24;
+    } else {
+      liquidY = h-30; liquidH = 20; liquidX = 10; liquidW = w-20;
+    }
+    const rect = svgEl("rect", {
+      x:liquidX, y:liquidY, width:liquidW, height:liquidH,
+      fill:liquidColor, opacity:"0.7", rx:2
+    });
+    g.appendChild(rect);
+    
+    // 气泡动画（如果标记了 bubbling）
+    if(inst.bubbling){
+      for(let i=0;i<3;i++){
+        const bubble = svgEl("circle", {
+          cx: liquidX + liquidW*(0.3+i*0.2),
+          cy: liquidY + liquidH - 5,
+          r:2.5,
+          fill:"rgba(255,255,255,0.7)",
+          class:"bubble"
+        });
+        const anim = svgEl("animate", {
+          attributeName:"cy",
+          from: liquidY + liquidH,
+          to: liquidY,
+          dur: (1+i*0.3)+"s",
+          repeatCount:"indefinite"
+        });
+        bubble.appendChild(anim);
+        g.appendChild(bubble);
+      }
+    }
+  }
+  
+  // 固体（容器底部画色块）
+  if(solids.length>0 && eq.type === "container"){
+    solids.forEach((r, i)=>{
+      const rg = REAGENTS.find(x=>x.id===r.id);
+      let solidY;
+      if(eq.id === "testTube") solidY = 95;
+      else if(eq.id === "beaker") solidY = 78;
+      else solidY = h-8;
+      const rect = svgEl("rect", {
+        x: w/2-10, y: solidY-3, width: 20, height: 3,
+        fill: rg.color, opacity:0.9
+      });
+      g.appendChild(rect);
+    });
+  }
+}
+
+/* ---------- 拖拽 ---------- */
+let dragging = null;
+function startDrag(e, inst, g){
+  const svgPt = svgPoint(e);
+  const offsetX = svgPt.x - inst.x;
+  const offsetY = svgPt.y - inst.y;
+  dragging = {inst, g, offsetX, offsetY};
+  g.setPointerCapture(e.pointerId);
+  g.onpointermove = (ev)=>{
+    if(!dragging) return;
+    const p = svgPoint(ev);
+    inst.x = p.x - dragging.offsetX;
+    inst.y = p.y - dragging.offsetY;
+    g.setAttribute("transform", `translate(${inst.x},${inst.y})`);
+    // 重画连接
+    renderConnections();
+  };
+  g.onpointerup = (ev)=>{
+    dragging = null;
+    g.onpointermove = null;
+    g.onpointerup = null;
+  };
+}
+function renderConnections(){
+  layerConn.innerHTML = "";
+  state.connections.forEach(c=>{
+    const from = state.instances.find(i=>i.id===c.fromInstId);
+    const to = state.instances.find(i=>i.id===c.toInstId);
+    if(!from || !to) return;
+    const fromEq = EQUIPMENT.find(e=>e.id===from.eqId);
+    const toEq = EQUIPMENT.find(e=>e.id===to.eqId);
+    const fp = fromEq.ports.find(p=>p.id===c.fromPortId);
+    const tp = toEq.ports.find(p=>p.id===c.toPortId);
+    if(!fp || !tp) return;
+    const x1 = from.x + fp.x/100*fromEq.instSize.w;
+    const y1 = from.y + fp.y/100*fromEq.instSize.h;
+    const x2 = to.x + tp.x/100*toEq.instSize.w;
+    const y2 = to.y + tp.y/100*toEq.instSize.h;
+    const mx = (x1+x2)/2;
+    const path = svgEl("path", {
+      d:`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`,
+      class:"connection-path"
+    });
+    path.onclick = (e)=>{
+      e.stopPropagation();
+      if(state.tool === "delete"){
+        state.connections = state.connections.filter(cc=>cc!==c);
+        renderCanvas();
+        toast("已删除连接");
+      }
+    };
+    layerConn.appendChild(path);
+  });
+}
+function svgPoint(e){
+  const pt = canvas.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(canvas.getScreenCTM().inverse());
+}
+
+/* ---------- 选中/删除 ---------- */
+function selectInstance(id){
+  state.selectedId = id;
+  renderCanvas();
+  showFloatPanel(id);
+  updateStatus();
+}
+function deleteInstance(id){
+  state.instances = state.instances.filter(i=>i.id!==id);
+  state.connections = state.connections.filter(c=>c.fromInstId!==id && c.toInstId!==id);
+  if(state.selectedId === id) state.selectedId = null;
+  renderCanvas();
+  hideFloatPanel();
+  updateStatus();
+  toast("已删除器材","ok");
+}
+
+/* ---------- 浮窗（选中器材操作） ---------- */
+function showFloatPanel(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst){ hideFloatPanel(); return; }
+  const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+  const fp = $("#float-panel");
+  const reagentNames = inst.reagents.map(r=>{
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    return `${rg.name}×${r.qty}`;
+  }).join("、") || "（空）";
+  fp.innerHTML = `
+    <div class="fp-title">${eq.name} #${id}</div>
+    <div class="fp-row"><label>类型</label><span>${eq.type}</span></div>
+    <div class="fp-row"><label>容量</label><span>${eq.capacity||"-"}</span></div>
+    <div class="fp-row"><label>可加热</label><span>${eq.heatable?"是":"否"}</span></div>
+    <div class="fp-row"><label>内含</label><span style="color:var(--accent);font-size:11px;">${reagentNames}</span></div>
+    <div class="fp-btns">
+      <button onclick="addReagentToSelected()">加药</button>
+      <button onclick="toggleHeat(${id})">${inst.heated?"停止加热":"加热"}</button>
+      <button onclick="toggleIgnite(${id})">${inst.ignited?"熄灭":"点燃"}</button>
+      <button class="del" onclick="deleteInstance(${id})">删除</button>
+    </div>
+  `;
+  fp.classList.add("show");
+}
+function hideFloatPanel(){
+  $("#float-panel").classList.remove("show");
+}
+
+/* ---------- 加药 ---------- */
+let modalContext = null;
+function addReagentToSelected(reagentId){
+  if(state.selectedId === null){
+    toast("请先选中一个容器器材","warn");
+    return;
+  }
+  const inst = state.instances.find(i=>i.id===state.selectedId);
+  if(!inst) return;
+  const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+  if(eq.type !== "container" && eq.type !== "tool" && eq.type !== "heatSource"){
+    toast("该器材不能加药","warn");
+    return;
+  }
+  if(reagentId){
+    const qty = parseFloat($("#reagent-qty").value) || 1;
+    addReagent(inst.id, reagentId, qty);
+    return;
+  }
+  // 弹出选择框
+  modalContext = {instId: inst.id};
+  const modalList = $("#reagent-modal-list");
+  modalList.innerHTML = REAGENTS.map(r=>`
+    <div class="list-item" data-id="${r.id}">
+      <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${r.color}" opacity=".7"/></svg></div>
+      <div class="meta">
+        <div class="name">${r.name}</div>
+        <div class="sub">${r.formula} · ${r.state==="solid"?"固体":r.state==="liquid"?"液体":"气体"}</div>
+      </div>
+      <span class="badge ${r.state}">${r.state==="solid"?"固":r.state==="liquid"?"液":"气"}</span>
+    </div>
+  `).join("");
+  modalList.querySelectorAll(".list-item").forEach(el=>{
+    el.onclick = ()=>{
+      modalList.querySelectorAll(".list-item").forEach(x=>x.style.background="");
+      el.style.background = "var(--panel)";
+      modalContext.reagentId = el.dataset.id;
+      modalContext.reagentName = REAGENTS.find(r=>r.id===el.dataset.id).name;
+    };
+  });
+  $("#reagent-modal-title").textContent = `为 ${eq.name} #${inst.id} 添加药品`;
+  $("#reagent-modal").classList.add("show");
+}
+function addReagent(instId, reagentId, qty){
+  const inst = state.instances.find(i=>i.id===instId);
+  if(!inst) return;
+  const existing = inst.reagents.find(r=>r.id===reagentId);
+  if(existing) existing.qty += qty;
+  else inst.reagents.push({id:reagentId, qty});
+  const rg = REAGENTS.find(r=>r.id===reagentId);
+  toast(`已添加 ${rg.name} ×${qty} 份`,"ok");
+  addReport("加药", `${inst.name}#${instId} + ${rg.name}×${qty}`);
+  // 自动触发 mix 反应
+  setTimeout(()=>tryReact(instId, "mix"), 100);
+  renderCanvas();
+  showFloatPanel(instId);
+}
+
+/* ---------- 加热/点燃 ---------- */
+function toggleHeat(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst) return;
+  const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+  // 错误检测：加热空容器
+  if(!inst.heated && inst.reagents.length===0 && eq.type==="container"){
+    toast("警告：加热空试管可能炸裂！请先加药","danger");
+    addReport("危险操作", `加热空的${eq.name}（已警告）`);
+    return;
+  }
+  if(!inst.heated && !eq.heatable && eq.type!=="heatSource"){
+    toast(`${eq.name}不能直接加热（需垫石棉网或不可加热）`,"warn");
+  }
+  inst.heated = !inst.heated;
+  if(inst.heated){
+    addReport("操作", `加热 ${inst.name}#${id}`);
+    tryReact(id, "heat");
+  } else {
+    inst.bubbling = false;
+  }
+  renderCanvas();
+  showFloatPanel(id);
+}
+function toggleIgnite(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst) return;
+  inst.ignited = !inst.ignited;
+  if(inst.ignited){
+    addReport("操作", `点燃 ${inst.name}#${id}`);
+    tryReact(id, "ignite");
+  }
+  renderCanvas();
+  showFloatPanel(id);
+}
+function stir(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst) return;
+  addReport("操作", `搅拌 ${inst.name}#${id}`);
+  toast("搅拌中...","ok");
+  tryReact(id, "mix");
+}
+
+/* ---------- 倾倒（从一个容器倒入另一个） ---------- */
+function pourFrom(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst) return;
+  if(inst.reagents.length===0){
+    toast("该容器为空，无可倾倒物","warn");
+    return;
+  }
+  // 找最近的另一个容器
+  const others = state.instances.filter(i=>i.id!==id);
+  if(others.length===0){
+    toast("工作台上没有其他容器可倾倒入","warn");
+    return;
+  }
+  // 选中其他容器作为目标（这里简化：选第一个其他容器实例）
+  let target = null;
+  // 优先选当前已选中的另一个
+  for(const o of others){
+    const eq = EQUIPMENT.find(e=>e.id===o.eqId);
+    if(eq && eq.type==="container"){ target = o; break; }
+  }
+  if(!target){
+    toast("没有其他容器可倾倒入","warn");
+    return;
+  }
+  // 移动所有药品到目标
+  const moved = [];
+  inst.reagents.forEach(r=>{
+    const ex = target.reagents.find(x=>x.id===r.id);
+    if(ex) ex.qty += r.qty;
+    else target.reagents.push({...r});
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    moved.push(`${rg.name}×${r.qty}`);
+  });
+  inst.reagents = [];
+  addReport("倾倒", `${inst.name}#${id} → ${target.name}#${target.id}（${moved.join("、")}）`);
+  toast(`已将${moved.join("、")}倒入${target.name}`,"ok");
+  // 触发混合反应
+  setTimeout(()=>tryReact(target.id, "mix"), 100);
+  renderCanvas();
+}
+
+/* ---------- 气密性检查 ---------- */
+function checkSeal(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst) return;
+  const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+  // 检查是否连接到其他器材
+  const conns = state.connections.filter(c=>c.fromInstId===id || c.toInstId===id);
+  if(conns.length===0 && eq.type==="container"){
+    toast("该容器未连接导管，气密性检查需连接装置","warn");
+    return;
+  }
+  toast("装置气密性良好（导管口有气泡冒出）","ok");
+  addReport("检查", `${inst.name}#${id} 气密性良好`);
+}
+
+/* ---------- 收集气体 ---------- */
+function collectGas(id){
+  const inst = state.instances.find(i=>i.id===id);
+  if(!inst) return;
+  const hasGas = inst.reagents.some(r=>{
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    return rg && rg.state==="gas";
+  });
+  if(!hasGas){
+    toast("该容器内没有可收集的气体","warn");
+    return;
+  }
+  const gas = inst.reagents.find(r=>{
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    return rg && rg.state==="gas";
+  });
+  const rg = REAGENTS.find(r=>r.id===gas.id);
+  toast(`已收集一瓶${rg.name}`,"ok");
+  addReport("收集", `从 ${inst.name}#${id} 收集 ${rg.name}`);
+}
+
+/* ---------- 连接 ---------- */
+function handlePortClick(instId, portId){
+  if(!state.linkingFrom){
+    state.linkingFrom = {instId, portId};
+    toast("已选起点，请点另一个器材的接口","ok");
+    renderCanvas();
+  } else {
+    if(state.linkingFrom.instId === instId){
+      toast("不能连接同一器材","warn");
+      state.linkingFrom = null;
+      renderCanvas();
+      return;
+    }
+    state.connections.push({
+      fromInstId: state.linkingFrom.instId,
+      fromPortId: state.linkingFrom.portId,
+      toInstId: instId,
+      toPortId: portId
+    });
+    toast("连接成功","ok");
+    addReport("连接", `器材#${state.linkingFrom.instId} → 器材#${instId}`);
+    state.linkingFrom = null;
+    renderCanvas();
+  }
+}
+
+/* ---------- 反应引擎 ---------- */
+function tryReact(instId, condition){
+  const inst = state.instances.find(i=>i.id===instId);
+  if(!inst) return;
+  // 收集容器内所有药品id
+  const reagentIds = inst.reagents.map(r=>r.id);
+  if(reagentIds.length === 0) return;
+  
+  // 找匹配的反应
+  let matched = null;
+  for(const rx of REACTIONS){
+    if(!rx.conditions.includes(condition)) continue;
+    // 检查反应物是否齐全
+    const need = rx.reactants.map(r=>r.id);
+    const hasAll = need.every(rid => reagentIds.includes(rid));
+    if(hasAll){
+      matched = rx;
+      break;
+    }
+  }
+  
+  if(!matched) return;
+  if(matched.noReaction){
+    toast(matched.tip,"warn");
+    addReport("反应", `${matched.equation}（不反应）`);
+    return;
+  }
+  
+  // 扣减反应物（简单处理：每个扣1份，不够则全扣）
+  matched.reactants.forEach(r=>{
+    const ex = inst.reagents.find(x=>x.id===r.id);
+    if(ex){
+      ex.qty = Math.max(0, ex.qty - 1);
+    }
+  });
+  // 移除用量为0的
+  inst.reagents = inst.reagents.filter(r=>r.qty > 0);
+  
+  // 生成产物
+  matched.products.forEach(p=>{
+    const ex = inst.reagents.find(x=>x.id===p.id);
+    if(ex) ex.qty += (p.qty||1);
+    else inst.reagents.push({id:p.id, qty:p.qty||1});
+  });
+  
+  // 显示现象
+  let phenoDesc = [];
+  matched.phenomena.forEach(ph=>{
+    phenoDesc.push(ph.desc);
+    if(ph.type === "bubble") inst.bubbling = true;
+  });
+  
+  toast(`反应！${matched.equation}`,"ok");
+  if(phenoDesc.length) toast(`现象：${phenoDesc.join("；")}`,"ok");
+  
+  addReport("反应", matched.equation, phenoDesc.join("；"));
+  
+  renderCanvas();
+  showFloatPanel(instId);
+  
+  // 5秒后停止气泡
+  if(inst.bubbling){
+    setTimeout(()=>{
+      inst.bubbling = false;
+      renderCanvas();
+    }, 5000);
+  }
+}
+
+/* ---------- 实验报告 ---------- */
+function addReport(type, action, phenomenon){
+  const r = {time: nowTime(), type, action, phenomenon: phenomenon||""};
+  state.report.push(r);
+  if(state.rightTab === "report") renderReport();
+}
+function renderReport(){
+  const c = $("#right-content");
+  if(state.report.length === 0){
+    c.innerHTML = `<div class="report-empty">还没有实验记录<br>开始操作后会自动记录</div>`;
+    return;
+  }
+  c.innerHTML = state.report.slice().reverse().map(r=>`
+    <div class="report-item">
+      <div class="ri-time">${r.time} · ${r.type}</div>
+      <div class="ri-action">${r.action}</div>
+      ${r.phenomenon?`<div class="ri-pheno">⚡ ${r.phenomenon}</div>`:""}
+    </div>
+  `).join("") + `<div style="text-align:center;margin-top:8px;"><button class="btn" style="padding:6px 14px;background:var(--panel2);border:1px solid var(--border);color:var(--text-dim);border-radius:5px;font-size:12px;" onclick="clearReport()">清空报告</button></div>`;
+}
+function clearReport(){
+  state.report = [];
+  renderReport();
+}
+
+/* ---------- 知识手册 ---------- */
+function renderKB(search){
+  search = search || "";
+  const c = $("#right-content");
+  const results = [];
+  // 搜药品
+  REAGENTS.forEach(r=>{
+    if(!search || r.name.includes(search) || r.formula.toLowerCase().includes(search.toLowerCase())){
+      results.push({type:"药品", id:r.id, title:r.name, sub:r.formula, data:r});
+    }
+  });
+  // 搜器材
+  EQUIPMENT.forEach(e=>{
+    if(!search || e.name.includes(search)){
+      results.push({type:"器材", id:e.id, title:e.name, sub:e.props.用途, data:e});
+    }
+  });
+  // 搜反应
+  REACTIONS.forEach(r=>{
+    if(!search || r.equation.includes(search) || (r.tip&&r.tip.includes(search))){
+      results.push({type:"反应", id:r.id, title:r.equation.split("→")[0].split("—")[0].trim(), sub:r.equation, data:r});
+    }
+  });
+  
+  if(results.length === 0){
+    c.innerHTML = `<div class="report-empty">未找到"${search}"</div>`;
+    return;
+  }
+  c.innerHTML = results.map((r,i)=>`
+    <div class="kb-card" data-i="${i}">
+      <div class="kb-title">
+        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:var(--panel);color:var(--text-dim);">${r.type}</span>
+        ${r.title}
+      </div>
+      <div class="kb-sub">${r.sub}</div>
+      <div class="kb-detail">
+        ${r.type==="药品" ? renderReagentDetail(r.data) : r.type==="器材" ? renderEquipDetail(r.data) : renderReactionDetail(r.data)}
+      </div>
+    </div>
+  `).join("");
+  c.querySelectorAll(".kb-card").forEach(el=>{
+    el.onclick = ()=> el.classList.toggle("open");
+  });
+}
+function renderReagentDetail(r){
+  return `
+    <div class="kb-row"><b>化学式：</b>${r.formula}</div>
+    <div class="kb-row"><b>状态：</b>${r.state==="solid"?"固体":r.state==="liquid"?"液体":"气体"}</div>
+    <div class="kb-row"><b>颜色：</b><span style="display:inline-block;width:12px;height:12px;background:${r.color};border:1px solid #fff;border-radius:2px;vertical-align:middle;"></span></div>
+    <div class="kb-row"><b>溶解性：</b>${r.solubility}</div>
+    <div class="kb-row"><b>危险性：</b>${r.danger}</div>
+    <div class="kb-row"><b>用途：</b>${r.props.用途}</div>
+    <div class="kb-row"><b>外观：</b>${r.props.外观}</div>
+  `;
+}
+function renderEquipDetail(e){
+  return `
+    <div class="kb-row"><b>类型：</b>${e.type}</div>
+    <div class="kb-row"><b>材质：</b>${e.props.材质}</div>
+    <div class="kb-row"><b>用途：</b>${e.props.用途}</div>
+    <div class="kb-row"><b>容量：</b>${e.capacity||"-"} ml</div>
+    <div class="kb-row"><b>可加热：</b>${e.heatable?"是":"否"}</div>
+  `;
+}
+function renderReactionDetail(r){
+  return `
+    <div class="kb-eq">${r.equation}</div>
+    ${r.tip?`<div class="kb-row"><b>说明：</b>${r.tip}</div>`:""}
+    <div class="kb-row"><b>条件：</b>${r.conditions.join(", ")}</div>
+    ${r.phenomena.length?`<div class="kb-row"><b>现象：</b>${r.phenomena.map(p=>p.desc).join("；")}</div>`:""}
+  `;
+}
+
+/* ---------- 加载模板 ---------- */
+function loadTemplate(tId){
+  const t = TEMPLATES.find(x=>x.id===tId);
+  if(!t) return;
+  // 清空
+  state.instances = [];
+  state.connections = [];
+  state.selectedId = null;
+  state.report = [];
+  
+  // 添加器材
+  let xPos = 80;
+  t.equipments.forEach(eqId=>{
+    addEquipment(eqId, xPos, 150);
+    xPos += 100;
+  });
+  // 添加药品到第一个容器
+  const container = state.instances.find(i=>{
+    const eq = EQUIPMENT.find(e=>e.id===i.eqId);
+    return eq && eq.type==="container";
+  });
+  if(container){
+    t.reagents.forEach(rId=>{
+      container.reagents.push({id:rId, qty:1});
+    });
+    // 模板加载后渲染并尝试触发混合反应
+    renderCanvas();
+    selectInstance(container.id);
+    tryReact(container.id, "mix");
+  } else {
+    renderCanvas();
+  }
+  addReport("模板", `加载：${t.title}`);
+  // 显示步骤
+  const stepStr = t.steps.map((s,i)=>`${i+1}. ${s}`).join("\n");
+  setTimeout(()=>toast(`步骤：\n${stepStr}`,"ok"), 500);
+}
+
+/* ---------- 状态栏 ---------- */
+function updateStatus(){
+  $("#status-equip-count").textContent = state.instances.length;
+  const toolNames = {select:"选择",heat:"加热",ignite:"点燃",stir:"搅拌",pour:"倾倒",connect:"连接",delete:"删除","check-seal":"查气密","collect-gas":"收集气体"};
+  $("#status-tool").textContent = toolNames[state.tool] || state.tool;
+  $("#status-mode").textContent = state.mode==="sandbox"?"自由沙盒模式":"模板模式";
+}
+
+/* ---------- 事件绑定 ---------- */
+function bindEvents(){
+  // 左栏 tab
+  $$(".panel-tabs button").forEach(btn=>{
+    btn.onclick = ()=>{
+      $$(".panel-tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      state.leftTab = btn.dataset.lefttab;
+      const sp = $("#left-search");
+      sp.placeholder = `搜索${state.leftTab==="equip"?"器材":state.leftTab==="reagent"?"药品":"模板"}...`;
+      sp.value = "";
+      renderLeftList();
+    };
+  });
+  // 左栏搜索
+  $("#left-search").oninput = ()=>renderLeftList();
+  
+  // 右栏 tab
+  $$(".right-tabs button").forEach(btn=>{
+    btn.onclick = ()=>{
+      $$(".right-tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      state.rightTab = btn.dataset.righttab;
+      if(state.rightTab === "kb"){
+        renderKB($("#kb-search").value || "");
+      } else {
+        renderReport();
+      }
+    };
+  });
+  // 知识手册搜索
+  $("#kb-search").oninput = ()=>{
+    if(state.rightTab === "kb") renderKB($("#kb-search").value);
+  };
+  
+  // 工具栏
+  $$(".toolbar .tool").forEach(btn=>{
+    btn.onclick = ()=>{
+      $$(".toolbar .tool").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      state.tool = btn.dataset.action;
+      state.linkingFrom = null;
+      hideFloatPanel();
+      updateStatus();
+      renderCanvas();
+    };
+  });
+  
+  // 画布空白点击：取消选中
+  canvas.onclick = (e)=>{
+    if(e.target === canvas || e.target.tagName === "svg"){
+      state.selectedId = null;
+      state.linkingFrom = null;
+      hideFloatPanel();
+      renderCanvas();
+    }
+  };
+  
+  // 顶栏按钮
+  $("#btn-reset").onclick = ()=>{
+    if(state.instances.length===0) return;
+    if(confirm("确定清空工作台？")){
+      state.instances = [];
+      state.connections = [];
+      state.selectedId = null;
+      state.linkingFrom = null;
+      state.report = [];
+      renderCanvas();
+      hideFloatPanel();
+      $("#canvas-hint").style.display = "block";
+      if(state.rightTab==="kb") renderKB("");
+      else renderReport();
+      updateStatus();
+      toast("已清空","ok");
+    }
+  };
+  $("#btn-help").onclick = ()=> $("#help-modal").classList.add("show");
+  $("#help-ok").onclick = ()=> $("#help-modal").classList.remove("show");
+  
+  // 模式切换
+  $("#mode-sandbox").onclick = ()=>{
+    state.mode = "sandbox";
+    $("#mode-sandbox").classList.add("active");
+    $("#mode-template").classList.remove("active");
+    updateStatus();
+  };
+  $("#mode-template").onclick = ()=>{
+    state.mode = "template";
+    $("#mode-template").classList.add("active");
+    $("#mode-sandbox").classList.remove("active");
+    // 自动切到模板 tab
+    $$(".panel-tabs button").forEach(b=>{
+      b.classList.toggle("active", b.dataset.lefttab==="template");
+    });
+    state.leftTab = "template";
+    renderLeftList();
+    updateStatus();
+    toast("模板模式：从左侧选择实验模板","ok");
+  };
+  
+  // 加药模态框
+  $("#reagent-cancel").onclick = ()=>{
+    $("#reagent-modal").classList.remove("show");
+    modalContext = null;
+  };
+  $("#reagent-ok").onclick = ()=>{
+    if(!modalContext || !modalContext.reagentId){
+      toast("请先选择药品","warn");
+      return;
+    }
+    const qty = parseFloat($("#reagent-qty").value) || 1;
+    addReagent(modalContext.instId, modalContext.reagentId, qty);
+    $("#reagent-modal").classList.remove("show");
+    modalContext = null;
+  };
+}
+
+/* ---------- 暴露给 onclick 的函数 ---------- */
+window.addReagentToSelected = addReagentToSelected;
+window.toggleHeat = toggleHeat;
+window.toggleIgnite = toggleIgnite;
+window.deleteInstance = deleteInstance;
+window.clearReport = clearReport;
+
+/* ---------- 初始化 ---------- */
+function init(){
+  bindEvents();
+  renderLeftList();
+  renderKB("");
+  updateStatus();
+  // 默认选中"选择"工具
+  $(".toolbar .tool[data-action='select']").classList.add("active");
+}
+init();
+</script>
+
+</body>
+</html>
