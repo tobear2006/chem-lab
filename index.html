@@ -2556,13 +2556,33 @@ function init(){
 }
 init();
 
-// 注册 Service Worker（PWA 离线支持）
+// 注册 Service Worker（PWA 离线支持，网络优先策略）
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      console.log('PWA Service Worker 已注册，可离线使用');
+      console.log('PWA Service Worker 已注册');
+      // 检测到新版本时自动刷新
+      reg.addEventListener('updatefound', ()=>{
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', ()=>{
+          if(newWorker.state === 'activated'){
+            // 新版本已激活，自动刷新页面
+            if(navigator.serviceWorker.controller){
+              window.location.reload();
+            }
+          }
+        });
+      });
     }).catch(err=>{
       console.log('SW 注册失败:', err);
+    });
+    // 监听控制器变化（切换到新SW时刷新）
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(!refreshing){
+        refreshing = true;
+        window.location.reload();
+      }
     });
   });
 }
