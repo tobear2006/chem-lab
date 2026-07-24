@@ -155,6 +155,21 @@ input{font-family:inherit;}
 .modal .qty-row label{font-size:12px; color:var(--text-dim); min-width:50px;}
 .modal .qty-row input{flex:1; padding:5px 8px; background:var(--panel); border:1px solid var(--border); color:var(--text); border-radius:4px; outline:none;}
 
+/* 滑块 */
+.slider-row{padding:4px 8px 8px; background:var(--bg); border-radius:6px; margin-bottom:8px;}
+.slider-row input[type=range]{width:100%; height:6px; -webkit-appearance:none; appearance:none; background:var(--panel); border-radius:3px; outline:none; cursor:pointer;}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:grab; border:2px solid #fff; box-shadow:0 0 6px var(--accent);}
+.slider-row input[type=range]::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:grab; border:2px solid #fff; box-shadow:0 0 6px var(--accent);}
+.slider-marks{display:flex; justify-content:space-between; margin-top:4px; font-size:10px; color:var(--text-dim);}
+
+/* 液体预览 */
+.liquid-preview{padding:10px; background:var(--bg); border-radius:6px; margin-bottom:8px;}
+.lp-label{font-size:11px; color:var(--text-dim); margin-bottom:6px;}
+.lp-bar-wrap{position:relative; height:24px; background:var(--panel); border-radius:4px; overflow:hidden; border:1px solid var(--border);}
+.lp-bar{height:100%; background:linear-gradient(90deg,var(--accent2),var(--accent)); border-radius:3px; transition:width 0.15s; width:10%;}
+.lp-current{position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text); font-weight:600; text-shadow:0 0 4px rgba(0,0,0,.8);}
+.lp-capacity{font-size:10px; color:var(--text-dim); margin-top:4px;}
+
 /* SVG 内部样式 */
 .equip-instance{cursor:grab; transition: filter 0.15s;}
 .equip-instance:active{cursor:grabbing;}
@@ -263,10 +278,24 @@ input{font-family:inherit;}
   <div class="modal">
     <h3 id="reagent-modal-title">添加药品</h3>
     <div class="modal-list" id="reagent-modal-list"></div>
-    <div class="qty-row">
+    <div class="qty-row" id="qty-control">
       <label>用量</label>
-      <input type="number" id="reagent-qty" value="1" min="0.1" step="0.1" />
-      <span style="font-size:12px;color:var(--text-dim);">份</span>
+      <input type="number" id="reagent-qty" value="5" min="0.5" step="0.5" />
+      <span style="font-size:12px;color:var(--text-dim);min-width:30px;">ml/份</span>
+    </div>
+    <div class="slider-row" id="slider-row">
+      <input type="range" id="reagent-slider" min="0.5" max="50" step="0.5" value="5" />
+      <div class="slider-marks">
+        <span>0.5</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span>
+      </div>
+    </div>
+    <div class="liquid-preview" id="liquid-preview">
+      <div class="lp-label">容器内液体预览</div>
+      <div class="lp-bar-wrap">
+        <div class="lp-bar" id="lp-bar"></div>
+        <div class="lp-current" id="lp-current">5 ml</div>
+      </div>
+      <div class="lp-capacity" id="lp-capacity">容器容量：— ml</div>
     </div>
     <div class="modal-foot">
       <button id="reagent-cancel">取消</button>
@@ -1608,7 +1637,7 @@ function addReagentToSelected(reagentId){
     return;
   }
   if(reagentId){
-    const qty = parseFloat($("#reagent-qty").value) || 1;
+    const qty = parseFloat($("#reagent-qty").value) || 5;
     addReagent(inst.id, reagentId, qty);
     return;
   }
@@ -1631,11 +1660,90 @@ function addReagentToSelected(reagentId){
       el.style.background = "var(--panel)";
       modalContext.reagentId = el.dataset.id;
       modalContext.reagentName = REAGENTS.find(r=>r.id===el.dataset.id).name;
+      // 选中药品后，根据药品状态调整用量控件
+      const rg = REAGENTS.find(r=>r.id===el.dataset.id);
+      updateQtyControl(rg, eq, inst);
     };
   });
   $("#reagent-modal-title").textContent = `为 ${eq.name} #${inst.id} 添加药品`;
+  // 初始化用量控件（默认选第一个药品）
+  const firstItem = modalList.querySelector(".list-item");
+  if(firstItem){
+    firstItem.click();
+  } else {
+    updateQtyControl(null, eq, inst);
+  }
   $("#reagent-modal").classList.add("show");
 }
+
+/* 根据药品类型和容器容量，更新用量控件 */
+function updateQtyControl(reagent, eq, inst){
+  const slider = $("#reagent-slider");
+  const qtyInput = $("#reagent-qty");
+  const sliderRow = $("#slider-row");
+  const preview = $("#liquid-preview");
+  const capEl = $("#lp-capacity");
+  
+  // 计算容器剩余容量
+  const capacity = eq.capacity || 50;
+  const currentLiquid = inst.reagents.filter(r=>{
+    const rg = REAGENTS.find(x=>x.id===r.id);
+    return rg && rg.state === "liquid";
+  }).reduce((s,r)=>s+r.qty, 0);
+  const remaining = Math.max(0.5, capacity - currentLiquid);
+  
+  if(reagent && reagent.state === "solid"){
+    // 固体：用"份"，范围小
+    sliderRow.style.display = "none";
+    preview.style.display = "none";
+    qtyInput.value = "1";
+    qtyInput.step = "0.5";
+    qtyInput.min = "0.5";
+    qtyInput.max = "10";
+  } else if(reagent && reagent.state === "gas"){
+    // 气体：用"份"
+    sliderRow.style.display = "none";
+    preview.style.display = "none";
+    qtyInput.value = "1";
+    qtyInput.step = "0.5";
+    qtyInput.min = "0.5";
+    qtyInput.max = "10";
+  } else {
+    // 液体：显示滑块和预览
+    sliderRow.style.display = "block";
+    preview.style.display = "block";
+    const maxQty = Math.min(remaining, 50);
+    slider.max = maxQty;
+    slider.min = 0.5;
+    slider.step = 0.5;
+    slider.value = Math.min(5, maxQty);
+    qtyInput.value = slider.value;
+    qtyInput.step = "0.5";
+    qtyInput.min = "0.5";
+    qtyInput.max = maxQty;
+    capEl.textContent = `容器容量：${capacity} ml，已装 ${currentLiquid.toFixed(1)} ml，还可加 ${remaining.toFixed(1)} ml`;
+    updateLiquidPreview(parseFloat(slider.value), capacity, currentLiquid);
+  }
+}
+
+/* 更新液体预览条 */
+function updateLiquidPreview(qty, capacity, currentLiquid){
+  const bar = $("#lp-bar");
+  const cur = $("#lp-current");
+  const totalAfter = currentLiquid + qty;
+  const pct = Math.min(100, (totalAfter / capacity) * 100);
+  bar.style.width = pct + "%";
+  cur.textContent = `${qty.toFixed(1)} ml（加后共 ${totalAfter.toFixed(1)} ml）`;
+  // 接近满时变红
+  if(pct > 90){
+    bar.style.background = "linear-gradient(90deg,#f59e0b,#ef4444)";
+  } else if(pct > 70){
+    bar.style.background = "linear-gradient(90deg,var(--accent2),#f59e0b)";
+  } else {
+    bar.style.background = "linear-gradient(90deg,var(--accent2),var(--accent))";
+  }
+}
+
 function addReagent(instId, reagentId, qty){
   const inst = state.instances.find(i=>i.id===instId);
   if(!inst) return;
@@ -1643,8 +1751,8 @@ function addReagent(instId, reagentId, qty){
   if(existing) existing.qty += qty;
   else inst.reagents.push({id:reagentId, qty});
   const rg = REAGENTS.find(r=>r.id===reagentId);
-  toast(`已添加 ${rg.name} ×${qty} 份`,"ok");
-  addReport("加药", `${inst.name}#${instId} + ${rg.name}×${qty}`);
+  toast(`已添加 ${rg.name} ×${qty} ${rg.state==="liquid"?"ml":"份"}`,"ok");
+  addReport("加药", `${inst.name}#${instId} + ${rg.name}×${qty}${rg.state==="liquid"?"ml":""}`);
   // 自动触发 mix 反应
   setTimeout(()=>tryReact(instId, "mix"), 100);
   renderCanvas();
@@ -2162,6 +2270,41 @@ function bindEvents(){
     addReagent(modalContext.instId, modalContext.reagentId, qty);
     $("#reagent-modal").classList.remove("show");
     modalContext = null;
+  };
+  // 滑块和数字框联动
+  $("#reagent-slider").oninput = (e)=>{
+    const v = parseFloat(e.target.value);
+    $("#reagent-qty").value = v;
+    // 更新预览
+    if(modalContext){
+      const inst = state.instances.find(i=>i.id===modalContext.instId);
+      const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+      const capacity = eq.capacity || 50;
+      const currentLiquid = inst.reagents.filter(r=>{
+        const rg = REAGENTS.find(x=>x.id===r.id);
+        return rg && rg.state === "liquid";
+      }).reduce((s,r)=>s+r.qty, 0);
+      updateLiquidPreview(v, capacity, currentLiquid);
+    }
+  };
+  $("#reagent-qty").oninput = (e)=>{
+    let v = parseFloat(e.target.value) || 0.5;
+    const slider = $("#reagent-slider");
+    const max = parseFloat(slider.max);
+    const min = parseFloat(slider.min);
+    if(v > max) v = max;
+    if(v < min) v = min;
+    slider.value = v;
+    if(modalContext){
+      const inst = state.instances.find(i=>i.id===modalContext.instId);
+      const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+      const capacity = eq.capacity || 50;
+      const currentLiquid = inst.reagents.filter(r=>{
+        const rg = REAGENTS.find(x=>x.id===r.id);
+        return rg && rg.state === "liquid";
+      }).reduce((s,r)=>s+r.qty, 0);
+      updateLiquidPreview(v, capacity, currentLiquid);
+    }
   };
 }
 
