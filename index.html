@@ -156,9 +156,10 @@ input{font-family:inherit;}
 .modal .qty-row input{flex:1; padding:5px 8px; background:var(--panel); border:1px solid var(--border); color:var(--text); border-radius:4px; outline:none;}
 
 /* SVG 内部样式 */
-.equip-instance{cursor:grab;}
+.equip-instance{cursor:grab; transition: filter 0.15s;}
 .equip-instance:active{cursor:grabbing;}
-.equip-instance.selected{filter:drop-shadow(0 0 6px var(--accent));}
+.equip-instance.selected{filter:drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 14px var(--accent));}
+.equip-instance.selected .equip-outline{stroke:var(--accent); stroke-width:2; fill:none; opacity:0.9;}
 .port{fill:var(--accent); stroke:#fff; stroke-width:1; cursor:pointer; opacity:.7;}
 .port:hover{opacity:1; r:5;}
 .port.linking{opacity:1; fill:var(--warn); animation:portPulse 1s infinite;}
@@ -1251,6 +1252,15 @@ function renderCanvas(){
     const use = svgEl("use", {href:`#sym-${eq.id}`, width:eq.instSize.w, height:eq.instSize.h});
     g.appendChild(use);
     
+    // 选中时的发光描边（可见的选中提示）
+    if(state.selectedId === inst.id){
+      const outline = svgEl("rect", {
+        x:-4, y:-4, width:eq.instSize.w+8, height:eq.instSize.h+8,
+        rx:4, class:"equip-outline"
+      });
+      g.appendChild(outline);
+    }
+    
     // 液体/药品显示
     renderInstanceContents(g, inst, eq);
     
@@ -1425,22 +1435,35 @@ function renderInstanceContents(g, inst, eq){
   }
 }
 
-/* ---------- 拖拽（document 级监听，更可靠） ---------- */
+/* ---------- 拖拽（document 级监听，rAF 节流，不重建 DOM） ---------- */
 let dragging = null;
+let dragRafPending = false;
 function startDrag(e, inst, g){
   const svgPt = svgPoint(e);
   const offsetX = svgPt.x - inst.x;
   const offsetY = svgPt.y - inst.y;
-  dragging = {inst, g, offsetX, offsetY};
-  // 在 document 上监听，避免 SVG 子元素捕获事件导致 pointermove 不触发
+  // 先选中（会触发 renderCanvas 重建画布）
+  selectInstance(inst.id);
+  // selectInstance 重建了画布，需要重新获取 g 元素
+  const newG = layerEquip.querySelector(`[data-id="${inst.id}"]`);
+  const targetG = newG || g;
+  dragging = {inst, g: targetG, offsetX, offsetY};
+  
   const onMove = (ev)=>{
     if(!dragging) return;
     ev.preventDefault();
     const p = svgPoint(ev);
     dragging.inst.x = p.x - dragging.offsetX;
     dragging.inst.y = p.y - dragging.offsetY;
-    dragging.g.setAttribute("transform", `translate(${dragging.inst.x},${dragging.inst.y})`);
-    renderConnections();
+    if(!dragRafPending){
+      dragRafPending = true;
+      requestAnimationFrame(()=>{
+        dragRafPending = false;
+        if(!dragging) return;
+        dragging.g.setAttribute("transform", `translate(${dragging.inst.x},${dragging.inst.y})`);
+        updateConnectionPaths();
+      });
+    }
   };
   const onUp = ()=>{
     dragging = null;
@@ -1451,9 +1474,31 @@ function startDrag(e, inst, g){
   };
   document.addEventListener("pointermove", onMove);
   document.addEventListener("pointerup", onUp);
-  // 移动端 touch 兼容
   document.addEventListener("touchmove", onMove, {passive:false});
   document.addEventListener("touchend", onUp);
+}
+
+/* 只更新连接线 path 的 d 属性（不重建 DOM，性能好） */
+function updateConnectionPaths(){
+  const paths = layerConn.querySelectorAll(".connection-path");
+  state.connections.forEach((c, i)=>{
+    const path = paths[i];
+    if(!path) return;
+    const from = state.instances.find(x=>x.id===c.fromInstId);
+    const to = state.instances.find(x=>x.id===c.toInstId);
+    if(!from || !to) return;
+    const fromEq = EQUIPMENT.find(e=>e.id===from.eqId);
+    const toEq = EQUIPMENT.find(e=>e.id===to.eqId);
+    const fp = fromEq.ports.find(p=>p.id===c.fromPortId);
+    const tp = toEq.ports.find(p=>p.id===c.toPortId);
+    if(!fp || !tp) return;
+    const x1 = from.x + fp.x/100*fromEq.instSize.w;
+    const y1 = from.y + fp.y/100*fromEq.instSize.h;
+    const x2 = to.x + tp.x/100*toEq.instSize.w;
+    const y2 = to.y + tp.y/100*toEq.instSize.h;
+    const mx = (x1+x2)/2;
+    path.setAttribute("d", `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+  });
 }
 function renderConnections(){
   layerConn.innerHTML = "";
