@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.3';
+  var APP_VERSION = '3.0.4';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.3';
+  var APP_VERSION = '3.0.4';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.3';
+  var APP_VERSION = '3.0.4';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -361,6 +361,7 @@ input{font-family:inherit;}
     <button id="mode-template">📋 实验模板</button>
   </div>
   <div class="spacer"></div>
+  <button class="btn" id="btn-sound">🔊 音效</button>
   <button class="btn" id="btn-help">❓ 帮助</button>
   <button class="btn danger" id="btn-reset">🗑️ 清空工作台</button>
 </div>
@@ -512,6 +513,115 @@ function toast(msg, type=""){
     t.style.transition = "opacity .3s";
     setTimeout(()=>t.remove(), 300);
   }, 3000);
+}
+
+/* ============ 音效引擎（Web Audio API 合成，无需外部文件） ============ */
+let audioCtx = null;
+let soundEnabled = true;
+function initAudio(){
+  if(!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, duration, type, volume, when){
+  if(!audioCtx || !soundEnabled) return;
+  const t = audioCtx.currentTime + (when || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(volume || 0.15, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + duration + 0.05);
+}
+function playNoise(duration, volume, filterFreq, when){
+  if(!audioCtx || !soundEnabled) return;
+  const t = audioCtx.currentTime + (when || 0);
+  const bufferSize = Math.floor(audioCtx.sampleRate * duration);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource(); src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = filterFreq || 2000;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(volume || 0.15, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  src.start(t); src.stop(t + duration);
+}
+
+// 音效库
+const SFX = {
+  click(){ // 玻璃触碰：短促清脆
+    playTone(1200, 0.08, 'sine', 0.12);
+    playTone(1800, 0.05, 'sine', 0.08, 0.01);
+  },
+  select(){ // 选中器材：双音
+    playTone(800, 0.06, 'sine', 0.1);
+    playTone(1200, 0.08, 'sine', 0.1, 0.04);
+  },
+  pour(){ // 液体倾倒：流水声+低频
+    playNoise(0.8, 0.12, 3000);
+    playTone(300, 0.6, 'sine', 0.05);
+    playTone(450, 0.4, 'triangle', 0.04, 0.2);
+  },
+  solidDrop(){ // 固体落入：颗粒声
+    for(let i = 0; i < 5; i++){
+      playTone(600 + Math.random() * 400, 0.04, 'square', 0.06, i * 0.03);
+    }
+    playNoise(0.15, 0.08, 4000);
+  },
+  shatter(){ // 试管炸裂：玻璃碎裂+爆炸
+    // 初始巨响
+    playNoise(0.3, 0.35, 8000);
+    playTone(80, 0.4, 'sawtooth', 0.3);
+    // 碎片声
+    for(let i = 0; i < 12; i++){
+      playTone(2000 + Math.random() * 3000, 0.05, 'triangle', 0.08, 0.05 + i * 0.03);
+      playNoise(0.04, 0.05, 6000, 0.05 + i * 0.03);
+    }
+    // 低频轰鸣
+    playTone(60, 0.8, 'sawtooth', 0.15, 0.1);
+  },
+  explosion(){ // 爆炸
+    playNoise(0.5, 0.4, 6000);
+    playTone(50, 0.6, 'sawtooth', 0.35);
+    playTone(120, 0.3, 'square', 0.2, 0.05);
+    for(let i = 0; i < 8; i++){
+      playNoise(0.08, 0.1, 4000, 0.1 + i * 0.04);
+    }
+  },
+  ignite(){ // 点燃酒精灯：嗤一声
+    playNoise(0.2, 0.15, 5000);
+    playTone(200, 0.15, 'sawtooth', 0.1);
+    playTone(600, 0.1, 'sine', 0.08, 0.05);
+  },
+  bubble(){ // 气泡冒出
+    playTone(400 + Math.random() * 200, 0.08, 'sine', 0.08);
+    playTone(600 + Math.random() * 300, 0.06, 'sine', 0.06, 0.03);
+  },
+  warn(){ // 警告
+    playTone(440, 0.15, 'square', 0.12);
+    playTone(330, 0.2, 'square', 0.12, 0.15);
+  },
+  success(){ // 反应成功
+    playTone(523, 0.1, 'sine', 0.12);
+    playTone(659, 0.1, 'sine', 0.12, 0.08);
+    playTone(784, 0.2, 'sine', 0.12, 0.16);
+  },
+  connect(){ // 连接器材
+    playTone(600, 0.05, 'sine', 0.1);
+    playTone(900, 0.08, 'sine', 0.1, 0.03);
+  }
+};
+
+// 播放音效（安全包装）
+function sfx(name){
+  try { if(SFX[name]) SFX[name](); } catch(e) {}
 }
 function nowTime(){
   const d = new Date();
@@ -1489,6 +1599,7 @@ function addEquipment(eqId, x, y){
   updateStatus();
   addReport("添加器材", `${eq.name}`);
   $("#canvas-hint").style.display = "none";
+  sfx("click");
   return inst;
 }
 
@@ -2154,6 +2265,7 @@ function selectInstance(id){
   renderCanvas();
   showFloatPanel(id);
   updateStatus();
+  sfx("select");
 }
 function deleteInstance(id){
   state.instances = state.instances.filter(i=>i.id!==id);
@@ -2328,6 +2440,9 @@ function addReagent(instId, reagentId, qty){
   const rg = REAGENTS.find(r=>r.id===reagentId);
   toast(`已添加 ${rg.name} ×${qty} ${rg.state==="liquid"?"ml":"份"}`,"ok");
   addReport("加药", `${inst.name}#${instId} + ${rg.name}×${qty}${rg.state==="liquid"?"ml":""}`);
+  // 音效：液体倾倒 vs 固体落入
+  if(rg.state === "liquid") sfx("pour");
+  else sfx("solidDrop");
   // 自动触发 mix 反应
   setTimeout(()=>tryReact(instId, "mix"), 100);
   renderCanvas();
@@ -2350,14 +2465,17 @@ function toggleHeat(id){
     shakeInstance(inst.id);
     // 器材破裂，后续渲染裂纹
     inst.broken = true;
+    sfx("shatter");
   }
   if(!inst.heated && !eq.heatable && eq.type!=="heatSource"){
     toast("⚠️ 加热不耐热器材！","warn");
     addReport("危险操作", `加热不可直接加热的${eq.name}`);
+    sfx("warn");
   }
   inst.heated = !inst.heated;
   if(inst.heated){
     addReport("操作", `加热 ${inst.name}#${id}`);
+    sfx("ignite");
     tryReact(id, "heat");
   } else {
     inst.bubbling = false;
@@ -2372,6 +2490,7 @@ function toggleIgnite(id){
   // 后果提示+写实动画
   if(!inst.ignited && inst.reagents.length===0){
     toast("⚠️ 点燃空容器无现象，注意防火","warn");
+    sfx("warn");
   }
   // 检查是否有易燃气体
   if(!inst.ignited){
@@ -2387,6 +2506,9 @@ function toggleIgnite(id){
       const cy = inst.y + 10;
       playDangerEffect("explosion", cx, cy, "气体不纯，发生爆炸！");
       shakeInstance(inst.id);
+      sfx("explosion");
+    } else {
+      sfx("ignite");
     }
   }
   inst.ignited = !inst.ignited;
@@ -2488,10 +2610,12 @@ function handlePortClick(instId, portId){
   if(!state.linkingFrom){
     state.linkingFrom = {instId, portId};
     toast("已选起点，请点另一个器材的接口","ok");
+    sfx("click");
     renderCanvas();
   } else {
     if(state.linkingFrom.instId === instId){
       toast("不能连接同一器材","warn");
+      sfx("warn");
       state.linkingFrom = null;
       renderCanvas();
       return;
@@ -2503,6 +2627,7 @@ function handlePortClick(instId, portId){
       toPortId: portId
     });
     toast("连接成功","ok");
+    sfx("connect");
     addReport("连接", `器材#${state.linkingFrom.instId} → 器材#${instId}`);
     state.linkingFrom = null;
     renderCanvas();
@@ -2532,6 +2657,7 @@ function checkDangerousReaction(rx, inst, condition){
   if(ids.includes("h2so4-conc") && ids.includes("h2o")){
     playDangerEffect("acid-splash", cx, cy, "浓硫酸稀释放热，酸液飞溅！");
     shakeInstance(inst.id);
+    sfx("warn");
     return "浓硫酸遇水剧烈放热，酸液飞溅会腐蚀皮肤和衣物";
   }
   return null;
@@ -2600,6 +2726,15 @@ function tryReact(instId, condition){
   if(phenoDesc.length) toast(`现象：${phenoDesc.join("；")}`,"ok");
   
   addReport("反应", matched.equation, phenoDesc.join("；"));
+  
+  // 反应音效
+  if(matched.phenomena.some(p=>p.type==="bubble")){
+    sfx("bubble");
+    // 持续气泡声
+    for(let i=0;i<5;i++) setTimeout(()=>sfx("bubble"), 500 + i*600);
+  } else {
+    sfx("success");
+  }
   
   renderCanvas();
   showFloatPanel(instId);
@@ -2834,6 +2969,17 @@ function bindEvents(){
     }
   };
   $("#btn-help").onclick = ()=> $("#help-modal").classList.add("show");
+  $("#btn-sound").onclick = ()=>{
+    soundEnabled = !soundEnabled;
+    const btn = $("#btn-sound");
+    if(soundEnabled){
+      btn.textContent = "🔊 音效";
+      initAudio();
+      sfx("click");
+    } else {
+      btn.textContent = "🔇 音效";
+    }
+  };
   $("#help-ok").onclick = ()=> $("#help-modal").classList.remove("show");
   
   // 模式切换
@@ -2924,6 +3070,16 @@ function init(){
   updateStatus();
   // 默认选中"选择"工具
   $(".toolbar .tool[data-action='select']").classList.add("active");
+  // 首次用户交互时初始化音频（浏览器策略要求）
+  const initAudioOnce = () => {
+    initAudio();
+    document.removeEventListener('pointerdown', initAudioOnce);
+    document.removeEventListener('keydown', initAudioOnce);
+    document.removeEventListener('touchstart', initAudioOnce);
+  };
+  document.addEventListener('pointerdown', initAudioOnce);
+  document.addEventListener('keydown', initAudioOnce);
+  document.addEventListener('touchstart', initAudioOnce);
 }
 init();
 
