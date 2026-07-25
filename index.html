@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.4';
+  var APP_VERSION = '3.0.5';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.4';
+  var APP_VERSION = '3.0.5';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.4';
+  var APP_VERSION = '3.0.5';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -244,10 +244,10 @@ input{font-family:inherit;}
 .equip-instance:active{cursor:grabbing;}
 .equip-instance.selected{filter:drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 14px var(--accent));}
 .equip-instance.selected .equip-outline{stroke:var(--accent); stroke-width:2; fill:none; opacity:0.9;}
-.port{fill:var(--accent); stroke:#fff; stroke-width:1; cursor:pointer; opacity:.7;}
-.port:hover{opacity:1; r:5;}
-.port.linking{opacity:1; fill:var(--warn); animation:portPulse 1s infinite;}
-@keyframes portPulse{0%,100%{r:4;} 50%{r:6;}}
+.port{fill:var(--accent); stroke:#fff; stroke-width:2; cursor:pointer; opacity:.8; filter:drop-shadow(0 0 4px var(--accent));}
+.port:hover{opacity:1; r:8;}
+.port.linking{opacity:1; fill:var(--warn); animation:portPulse 1s infinite; filter:drop-shadow(0 0 6px var(--warn));}
+@keyframes portPulse{0%,100%{r:6;} 50%{r:9;}}
 .connection-path{stroke:var(--text-dim); stroke-width:3; fill:none; opacity:.7; cursor:pointer;}
 .connection-path:hover{stroke:var(--accent); opacity:1;}
 .bubble{fill:rgba(255,255,255,.6);}
@@ -1709,19 +1709,33 @@ function renderCanvas(){
         const cx = p.x/100*eq.instSize.w;
         const cy = p.y/100*eq.instSize.h;
         const isLinkingFrom = state.linkingFrom && state.linkingFrom.instId===inst.id && state.linkingFrom.portId===p.id;
-        const port = svgEl("circle", {
-          cx, cy, r:4, class:"port"+(isLinkingFrom?" linking":"")
+        // 透明大命中区域（手指友好）
+        const hitArea = svgEl("circle", {
+          cx, cy, r:18, fill:"transparent", class:"port-hit",
+          style:"cursor:pointer;"
         });
-        port.onclick = (e)=>{
+        // 可视端口
+        const port = svgEl("circle", {
+          cx, cy, r:6, class:"port"+(isLinkingFrom?" linking":"")
+        });
+        const onPortClick = (e)=>{
           e.stopPropagation();
+          e.preventDefault();
           handlePortClick(inst.id, p.id);
         };
+        hitArea.addEventListener("pointerdown", onPortClick);
+        hitArea.addEventListener("touchstart", (e)=>{ e.preventDefault(); onPortClick(e); }, {passive:false});
+        g.appendChild(hitArea);
         g.appendChild(port);
       });
     }
     
     // 拖拽和点击（同时支持鼠标和触摸）
     const onPointerDown = (e)=>{
+      // connect 模式下，如果点的是端口区域，让端口事件优先处理
+      if(state.tool === "connect" && e.target.classList && (e.target.classList.contains("port") || e.target.classList.contains("port-hit"))){
+        return; // 不阻止，让端口的事件处理
+      }
       e.stopPropagation();
       e.preventDefault();
       if(state.tool === "select"){
