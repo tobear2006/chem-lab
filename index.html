@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.0';
+  var APP_VERSION = '3.0.1';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -20,9 +20,30 @@
 })();
 </script>
 <script>
+// 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
+(function(){
+  var APP_VERSION = '3.0.1';
+  var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
+  var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
+  if('serviceWorker' in navigator && !cleaned){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      var tasks = regs.map(function(r){ return r.unregister(); });
+      return Promise.all(tasks);
+    }).then(function(){
+      localStorage.setItem(SW_CLEAN_KEY, APP_VERSION);
+      // 如果有旧SW控制，立即刷新一次
+      if(navigator.serviceWorker.controller){
+        sessionStorage.setItem('chem-lab-reloaded', '1');
+        window.location.replace(location.pathname + '?v=' + APP_VERSION + '&t=' + Date.now());
+      }
+    }).catch(function(){});
+  }
+})();
+</script>
+<script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.0';
+  var APP_VERSION = '3.0.1';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
