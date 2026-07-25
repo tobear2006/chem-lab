@@ -1,6 +1,6 @@
 // Service Worker - 虚拟化学实验室 PWA v3.2 - 强制更新版
-const CACHE_VERSION = 'chem-lab-v3-20260725g';
-const APP_VERSION = '3.0.6';
+const CACHE_VERSION = 'chem-lab-v3-20260725i';
+const APP_VERSION = '3.0.8';
 const ASSETS = [
   './',
   './index.html',

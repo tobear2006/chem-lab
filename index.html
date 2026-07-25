@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.6';
+  var APP_VERSION = '3.0.8';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.6';
+  var APP_VERSION = '3.0.8';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.6';
+  var APP_VERSION = '3.0.8';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -990,7 +990,7 @@ EQUIPMENT = [
     id:"burningSpoon", name:"燃烧匙", type:"tool",
     capacity:0, heatable:true,
     props:{材质:"铜",用途:"盛放固体在气体中燃烧"},
-    ports:[],
+    ports:[{id:"flame",x:50,y:82,type:"open",dir:"down"}],
     symbol:`
       <symbol id="sym-burningSpoon" viewBox="0 0 12 80">
         <rect x="5" y="2" width="2" height="60" fill="#666"/>
@@ -1002,7 +1002,7 @@ EQUIPMENT = [
     id:"ironWire", name:"铁丝(带火柴杆)", type:"tool",
     capacity:0, heatable:true,
     props:{材质:"铁",用途:"铁丝在氧气中燃烧实验"},
-    ports:[],
+    ports:[{id:"flame",x:50,y:95,type:"open",dir:"down"}],
     symbol:`
       <symbol id="sym-ironWire" viewBox="0 0 8 70">
         <rect x="3.5" y="2" width="1" height="55" fill="#999"/>
@@ -1699,6 +1699,24 @@ function renderCanvas(){
         const flame = svgEl("ellipse", {
           cx:fx, cy:fy-8, rx:5, ry:10, fill:"#fb923c", opacity:"0.8", class:"flame"
         });
+        g.appendChild(flame);
+      }
+    }
+    // 反应燃烧火焰（如硫燃烧）
+    if(inst.flaming){
+      const fc = inst.flameColor || "#fb923c";
+      const cx = eq.instSize.w/2;
+      const cy = eq.instSize.h > 50 ? 10 : 0;
+      // 大火焰
+      for(let i=0;i<5;i++){
+        const flame = svgEl("ellipse", {
+          cx: cx + (Math.random()-0.5)*16, cy: cy - 8 - i*6,
+          rx: 6+Math.random()*4, ry: 12+Math.random()*8,
+          fill: i<2 ? fc : (i===2 ? "#fff" : "#fb923c"), opacity: 0.85-i*0.1,
+          class:"flame"
+        });
+        const anim = svgEl("animate", {attributeName:"opacity", values:"0.85;0.3;0.85", dur:"0.2s", repeatCount:"indefinite"});
+        flame.appendChild(anim);
         g.appendChild(flame);
       }
     }
@@ -2700,15 +2718,36 @@ function checkDangerousReaction(rx, inst, condition){
 function tryReact(instId, condition){
   const inst = state.instances.find(i=>i.id===instId);
   if(!inst) return;
-  // 收集容器内所有药品id
-  const reagentIds = inst.reagents.map(r=>r.id);
+  // 收集当前器材内所有药品id
+  let reagentIds = inst.reagents.map(r=>r.id);
   if(reagentIds.length === 0) return;
-  
+
+  // 点燃/加热时：检查连接的器材里是否有反应物（跨器材反应）
+  if(condition === "ignite" || condition === "heat"){
+    state.connections.forEach(c => {
+      let otherId = null;
+      if(c.fromInstId === instId) otherId = c.toInstId;
+      else if(c.toInstId === instId) otherId = c.fromInstId;
+      if(otherId){
+        const ci = state.instances.find(i => i.id === otherId);
+        if(ci){
+          ci.reagents.forEach(r => {
+            if(!reagentIds.includes(r.id)) reagentIds.push(r.id);
+          });
+        }
+      }
+    });
+  }
+
+  // 点燃时默认空气中有氧气（硫、碳、磷在空气中也能燃烧）
+  if(condition === "ignite" && !reagentIds.includes("o2")){
+    reagentIds.push("o2");
+  }
+
   // 找匹配的反应
   let matched = null;
   for(const rx of REACTIONS){
     if(!rx.conditions.includes(condition)) continue;
-    // 检查反应物是否齐全
     const need = rx.reactants.map(r=>r.id);
     const hasAll = need.every(rid => reagentIds.includes(rid));
     if(hasAll){
@@ -2716,30 +2755,47 @@ function tryReact(instId, condition){
       break;
     }
   }
-  
+
   if(!matched) return;
   if(matched.noReaction){
     toast(matched.tip,"warn");
     addReport("反应", `${matched.equation}（不反应）`);
     return;
   }
-  
+
   // 危险反应后果提示（不阻止，只告知）
   const dangerTips = checkDangerousReaction(matched, inst, condition);
   if(dangerTips){
     toast(`⚠️ 后果：${dangerTips}`,"danger");
     addReport("危险反应", `${matched.equation}（${dangerTips}）`);
   }
-  
-  // 扣减反应物（简单处理：每个扣1份，不够则全扣）
+
+  // 扣减反应物（每个扣1份，来自空气的氧气不扣）
   matched.reactants.forEach(r=>{
     const ex = inst.reagents.find(x=>x.id===r.id);
     if(ex){
       ex.qty = Math.max(0, ex.qty - 1);
+    } else {
+      // 在连接的器材里找
+      state.connections.forEach(c => {
+        let otherId = null;
+        if(c.fromInstId === instId) otherId = c.toInstId;
+        else if(c.toInstId === instId) otherId = c.fromInstId;
+        if(otherId){
+          const ci = state.instances.find(i => i.id === otherId);
+          if(ci){
+            const cr = ci.reagents.find(x=>x.id===r.id);
+            if(cr) cr.qty = Math.max(0, cr.qty - 1);
+          }
+        }
+      });
     }
   });
-  // 移除用量为0的
+  // 移除用量为0的（所有器材）
   inst.reagents = inst.reagents.filter(r=>r.qty > 0);
+  state.instances.forEach(i => {
+    if(i.id !== instId) i.reagents = i.reagents.filter(r=>r.qty > 0);
+  });
   
   // 生成产物
   matched.products.forEach(p=>{
@@ -2753,18 +2809,43 @@ function tryReact(instId, condition){
   matched.phenomena.forEach(ph=>{
     phenoDesc.push(ph.desc);
     if(ph.type === "bubble") inst.bubbling = true;
+    if(ph.type === "flame"){
+      inst.flaming = true;
+      inst.flameColor = ph.color || "#fb923c";
+      // 火焰特效
+      const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+      const cx = inst.x + eq.instSize.w/2;
+      const cy = inst.y + 5;
+      playDangerEffect("fire", cx, cy, ph.desc);
+      sfx("ignite");
+      // 5秒后灭火
+      setTimeout(()=>{
+        inst.flaming = false;
+        renderCanvas();
+      }, 5000);
+    }
+    if(ph.type === "smoke"){
+      const eq = EQUIPMENT.find(e=>e.id===inst.eqId);
+      const cx = inst.x + eq.instSize.w/2;
+      const cy = inst.y;
+      // 烟雾效果
+      for(let i=0;i<3;i++){
+        setTimeout(()=>playDangerEffect("smoke", cx + (Math.random()-0.5)*30, cy, ""), i*800);
+      }
+    }
   });
-  
+
   toast(`反应！${matched.equation}`,"ok");
   if(phenoDesc.length) toast(`现象：${phenoDesc.join("；")}`,"ok");
-  
+
   addReport("反应", matched.equation, phenoDesc.join("；"));
-  
+
   // 反应音效
   if(matched.phenomena.some(p=>p.type==="bubble")){
     sfx("bubble");
-    // 持续气泡声
     for(let i=0;i<5;i++) setTimeout(()=>sfx("bubble"), 500 + i*600);
+  } else if(matched.phenomena.some(p=>p.type==="flame")){
+    // 燃烧声已在上面播放
   } else {
     sfx("success");
   }
