@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.2';
+  var APP_VERSION = '3.0.3';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.2';
+  var APP_VERSION = '3.0.3';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.2';
+  var APP_VERSION = '3.0.3';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -559,20 +559,36 @@ EQUIPMENT = [
       <symbol id="sym-testTube" viewBox="0 0 50 120">
   <defs>
     <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="rgba(220,240,255,0.35)"/>
-      <stop offset="30%" stop-color="rgba(220,240,255,0.08)"/>
-      <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
-      <stop offset="70%" stop-color="rgba(220,240,255,0.08)"/>
-      <stop offset="100%" stop-color="rgba(220,240,255,0.35)"/>
+      <stop offset="0%" stop-color="rgba(180,210,235,0.4)"/>
+      <stop offset="15%" stop-color="rgba(220,240,255,0.12)"/>
+      <stop offset="40%" stop-color="rgba(255,255,255,0.04)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.06)"/>
+      <stop offset="85%" stop-color="rgba(220,240,255,0.12)"/>
+      <stop offset="100%" stop-color="rgba(180,210,235,0.4)"/>
+    </linearGradient>
+    <radialGradient id="testtubeHi" cx="30%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="testtubeShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(80,120,150,0.05)"/>
+      <stop offset="100%" stop-color="rgba(80,120,150,0.25)"/>
     </linearGradient>
   </defs>
-  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#glassGrad)" stroke="#b8d4e8" stroke-width="1.5"/>
-  <ellipse cx="25" cy="8" rx="10" ry="3" fill="rgba(220,240,255,0.25)" stroke="#b8d4e8" stroke-width="1.2"/>
-  <ellipse cx="25" cy="95" rx="10" ry="3" fill="rgba(220,240,255,0.2)" stroke="#b8d4e8" stroke-width="1.2"/>
-  <line x1="18" y1="30" x2="22" y2="30" stroke="#b8d4e8" stroke-width="1"/>
-  <line x1="18" y1="50" x2="22" y2="50" stroke="#b8d4e8" stroke-width="1"/>
-  <line x1="18" y1="70" x2="22" y2="70" stroke="#b8d4e8" stroke-width="1"/>
-  <path d="M20 20 Q22 22 20 24" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.5"/>
+  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#testtubeShade)" stroke="#a8c4d8" stroke-width="1.5"/>
+  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#glassGrad)" opacity="0.95"/>
+  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#testtubeHi)" opacity="0.8"/>
+  <ellipse cx="25" cy="8" rx="10" ry="3" fill="rgba(180,210,235,0.35)" stroke="#a8c4d8" stroke-width="1.2"/>
+  <ellipse cx="25" cy="8" rx="10" ry="2" fill="rgba(255,255,255,0.18)"/>
+  <ellipse cx="25" cy="95" rx="10" ry="3" fill="rgba(150,190,220,0.3)" stroke="#a8c4d8" stroke-width="1.2"/>
+  <ellipse cx="25" cy="111" rx="10" ry="2" fill="rgba(255,255,255,0.2)"/>
+  <line x1="18" y1="30" x2="22" y2="30" stroke="#a8c4d8" stroke-width="0.8"/>
+  <line x1="18" y1="50" x2="22" y2="50" stroke="#a8c4d8" stroke-width="0.8"/>
+  <line x1="18" y1="70" x2="22" y2="70" stroke="#a8c4d8" stroke-width="0.8"/>
+  <line x1="18" y1="90" x2="22" y2="90" stroke="#a8c4d8" stroke-width="0.8"/>
+  <path d="M19 25 Q23 28 19 32" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M31 70 Q34 73 31 78" stroke="rgba(255,255,255,0.3)" fill="none" stroke-width="1" stroke-linecap="round"/>
 </symbol>`,
     instSize:{w:50,h:120},
   },
@@ -585,23 +601,37 @@ EQUIPMENT = [
       <symbol id="sym-beaker" viewBox="0 0 80 90">
   <defs>
     <linearGradient id="beakerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="rgba(220,240,255,0.4)"/>
-      <stop offset="20%" stop-color="rgba(220,240,255,0.1)"/>
-      <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
-      <stop offset="80%" stop-color="rgba(220,240,255,0.1)"/>
-      <stop offset="100%" stop-color="rgba(220,240,255,0.4)"/>
+      <stop offset="0%" stop-color="rgba(180,210,235,0.45)"/>
+      <stop offset="12%" stop-color="rgba(220,240,255,0.12)"/>
+      <stop offset="40%" stop-color="rgba(255,255,255,0.04)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.06)"/>
+      <stop offset="88%" stop-color="rgba(220,240,255,0.12)"/>
+      <stop offset="100%" stop-color="rgba(180,210,235,0.45)"/>
+    </linearGradient>
+    <radialGradient id="beakerHi" cx="30%" cy="15%" r="55%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="beakerShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(80,120,150,0.04)"/>
+      <stop offset="100%" stop-color="rgba(80,120,150,0.22)"/>
     </linearGradient>
   </defs>
-  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerGrad)" stroke="#b8d4e8" stroke-width="1.5"/>
-  <ellipse cx="40" cy="10" rx="32" ry="4" fill="rgba(220,240,255,0.2)" stroke="#b8d4e8" stroke-width="1.2"/>
-  <ellipse cx="40" cy="84" rx="32" ry="3" fill="rgba(220,240,255,0.15)" stroke="#b8d4e8" stroke-width="1.2"/>
-  <line x1="10" y1="26" x2="16" y2="26" stroke="#7a9cb0" stroke-width="1"/>
-  <line x1="10" y1="46" x2="16" y2="46" stroke="#7a9cb0" stroke-width="1"/>
-  <line x1="10" y1="66" x2="16" y2="66" stroke="#7a9cb0" stroke-width="1"/>
-  <text x="18" y="29" font-size="6" fill="#7a9cb0">100</text>
-  <text x="18" y="49" font-size="6" fill="#7a9cb0">150</text>
-  <text x="18" y="69" font-size="6" fill="#7a9cb0">200</text>
-  <path d="M12 18 Q15 20 12 22" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.5"/>
+  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerShade)" stroke="#a8c4d8" stroke-width="1.5"/>
+  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerGrad)" opacity="0.95"/>
+  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerHi)" opacity="0.8"/>
+  <ellipse cx="40" cy="10" rx="32" ry="4" fill="rgba(180,210,235,0.35)" stroke="#a8c4d8" stroke-width="1.2"/>
+  <ellipse cx="40" cy="10" rx="32" ry="3" fill="rgba(255,255,255,0.2)"/>
+  <ellipse cx="40" cy="84" rx="32" ry="3" fill="rgba(150,190,220,0.3)" stroke="#a8c4d8" stroke-width="1.2"/>
+  <line x1="10" y1="26" x2="16" y2="26" stroke="#6a8ca0" stroke-width="1"/>
+  <line x1="10" y1="46" x2="16" y2="46" stroke="#6a8ca0" stroke-width="1"/>
+  <line x1="10" y1="66" x2="16" y2="66" stroke="#6a8ca0" stroke-width="1"/>
+  <text x="18" y="29" font-size="6" fill="#6a8ca0">100</text>
+  <text x="18" y="49" font-size="6" fill="#6a8ca0">150</text>
+  <text x="18" y="69" font-size="6" fill="#6a8ca0">200</text>
+  <path d="M12 18 Q16 22 12 26" stroke="rgba(255,255,255,0.65)" fill="none" stroke-width="2" stroke-linecap="round"/>
+  <path d="M65 18 Q69 24 65 30" stroke="rgba(255,255,255,0.3)" fill="none" stroke-width="1" stroke-linecap="round"/>
 </symbol>`,
     instSize:{w:80,h:90},
   },
@@ -612,8 +642,23 @@ EQUIPMENT = [
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
       <symbol id="sym-flaskErlenmeyer" viewBox="0 0 70 100">
-        <path d="M30 8 L30 35 L8 88 Q8 95 15 95 L55 95 Q62 95 62 88 L40 35 L40 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
-        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <defs>
+          <linearGradient id="flaskErlenShade" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(80,120,150,0.04)"/>
+            <stop offset="100%" stop-color="rgba(80,120,150,0.3)"/>
+          </linearGradient>
+          <radialGradient id="flaskErlenHi" cx="35%" cy="70%" r="50%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+          </radialGradient>
+        </defs>
+        <path d="M30 8 L30 35 L8 88 Q8 95 15 95 L55 95 Q62 95 62 88 L40 35 L40 8 Z" fill="url(#flaskErlenShade)" stroke="#a8c4d8" stroke-width="1.5"/>
+        <path d="M30 8 L30 35 L8 88 Q8 95 15 95 L55 95 Q62 95 62 88 L40 35 L40 8 Z" fill="url(#flaskErlenHi)" opacity="0.7"/>
+        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
+        <ellipse cx="35" cy="8" rx="5" ry="1.5" fill="rgba(255,255,255,0.2)"/>
+        <line x1="15" y1="92" x2="20" y2="92" stroke="#6a8ca0" stroke-width="0.8"/>
+        <line x1="15" y1="86" x2="20" y2="86" stroke="#6a8ca0" stroke-width="0.8"/>
+        <path d="M33 13 Q35 16 33 19" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
       </symbol>`,
     instSize:{w:70,h:100},
   },
@@ -624,8 +669,18 @@ EQUIPMENT = [
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
       <symbol id="sym-flaskRound" viewBox="0 0 70 110">
-        <path d="M30 8 L30 45 Q15 55 15 75 Q15 100 35 100 Q55 100 55 75 Q55 55 40 45 L40 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
-        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <defs>
+          <radialGradient id="flaskRoundBody" cx="35%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+            <stop offset="50%" stop-color="rgba(200,225,245,0.2)"/>
+            <stop offset="100%" stop-color="rgba(150,180,210,0.3)"/>
+          </radialGradient>
+        </defs>
+        <path d="M30 8 L30 45 Q15 55 15 75 Q15 100 35 100 Q55 100 55 75 Q55 55 40 45 L40 8 Z" fill="rgba(180,210,235,0.18)" stroke="#a8c4d8" stroke-width="1.5"/>
+        <ellipse cx="35" cy="80" rx="18" ry="18" fill="url(#flaskRoundBody)" opacity="0.8"/>
+        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
+        <path d="M22 65 Q26 70 22 78" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="2" stroke-linecap="round"/>
+        <path d="M33 13 Q35 16 33 19" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
       </symbol>`,
     instSize:{w:70,h:110},
   },
@@ -636,8 +691,17 @@ EQUIPMENT = [
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
       <symbol id="sym-flaskFlat" viewBox="0 0 70 110">
-        <path d="M30 8 L30 45 Q15 55 15 95 L55 95 L55 45 Q55 55 40 45 L40 8 Z" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
-        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(200,230,255,.2)" stroke="#b8d4e8" stroke-width="1.2"/>
+        <defs>
+          <linearGradient id="flaskFlatShade" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(80,120,150,0.04)"/>
+            <stop offset="100%" stop-color="rgba(80,120,150,0.25)"/>
+          </linearGradient>
+        </defs>
+        <path d="M30 8 L30 45 Q15 55 15 95 L55 95 L55 45 Q55 55 40 45 L40 8 Z" fill="url(#flaskFlatShade)" stroke="#a8c4d8" stroke-width="1.5"/>
+        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
+        <line x1="15" y1="88" x2="22" y2="88" stroke="#6a8ca0" stroke-width="0.8"/>
+        <line x1="15" y1="80" x2="22" y2="80" stroke="#6a8ca0" stroke-width="0.8"/>
+        <path d="M20 60 Q23 65 20 70" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.8" stroke-linecap="round"/>
       </symbol>`,
     instSize:{w:70,h:110},
   },
@@ -648,9 +712,23 @@ EQUIPMENT = [
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
       <symbol id="sym-gasJar" viewBox="0 0 70 100">
-        <rect x="10" y="8" width="50" height="85" rx="2" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
-        <rect x="8" y="4" width="54" height="6" rx="2" fill="rgba(200,230,255,.25)" stroke="#b8d4e8" stroke-width="1.2"/>
-        <line x1="35" y1="14" x2="35" y2="90" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+        <defs>
+          <linearGradient id="gasJarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="rgba(180,210,235,0.4)"/>
+            <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
+            <stop offset="100%" stop-color="rgba(180,210,235,0.4)"/>
+          </linearGradient>
+          <radialGradient id="gasJarHi" cx="30%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+          </radialGradient>
+        </defs>
+        <rect x="10" y="8" width="50" height="85" rx="2" fill="rgba(180,210,235,0.18)" stroke="#a8c4d8" stroke-width="1.5"/>
+        <rect x="10" y="8" width="50" height="85" rx="2" fill="url(#gasJarGrad)" opacity="0.9"/>
+        <rect x="10" y="8" width="50" height="85" rx="2" fill="url(#gasJarHi)" opacity="0.8"/>
+        <rect x="8" y="4" width="54" height="6" rx="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
+        <rect x="8" y="4" width="54" height="3" rx="2" fill="rgba(255,255,255,0.3)"/>
+        <path d="M14 15 Q18 20 14 25" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
       </symbol>`,
     instSize:{w:70,h:100},
   },
@@ -1834,30 +1912,35 @@ function playDangerEffect(type, x, y, msg){
   const g = svgEl("g", {class:"danger-effect", transform:`translate(${x},${y})`});
 
   if(type === "shatter"){
-    // 炸裂：闪光+冲击波+裂纹+碎片
-    // 1. 闪光
-    const flash = svgEl("circle", {cx:0, cy:0, r:60, fill:"#fff", class:"flash-pulse"});
+    // 炸裂：闪光+冲击波+裂纹+碎片 - 强化版
+    // 1. 大闪光（最强烈）
+    const flash = svgEl("circle", {cx:0, cy:0, r:80, fill:"#fff", class:"flash-pulse"});
     g.appendChild(flash);
 
-    // 2. 冲击波环
-    const shock = svgEl("circle", {cx:0, cy:0, r:0, class:"shockwave"});
-    g.appendChild(shock);
+    // 2. 多层冲击波环（橙色爆裂圈）
+    for(let r=0;r<3;r++){
+      const shock = svgEl("circle", {
+        cx:0, cy:0, r:0,
+        fill:"none", stroke:["#fff","#fb923c","#ef4444"][r], "stroke-width":[5,4,3][r],
+        class:"shockwave",
+        style:`animation-delay:${r*0.1}s`
+      });
+      g.appendChild(shock);
+    }
 
-    // 3. 裂纹 - 更多更粗
-    for(let i=0;i<8;i++){
-      const angle = (i/8)*Math.PI*2;
+    // 3. 裂纹 - 更多更粗更亮
+    for(let i=0;i<10;i++){
+      const angle = (i/10)*Math.PI*2;
       const r = 25 + Math.random()*15;
       const cx = Math.cos(angle)*r;
       const cy = Math.sin(angle)*r;
-      // 主裂纹
       const crack = svgEl("path", {
         d:`M0,0 L${cx*0.35},${cy*0.35} L${cx},${cy}`,
         class:"crack-line crack-anim crack-glow",
         "stroke-dasharray":"120",
-        style:`animation-delay:${i*0.04}s`
+        style:`animation-delay:${i*0.03}s; animation-duration:0.6s; stroke-width:${2 + Math.random()*1.5}`
       });
       g.appendChild(crack);
-      // 次裂纹分支
       if(i%2===0){
         const branchAngle = angle + 0.4;
         const br = r * 0.6;
@@ -1867,34 +1950,32 @@ function playDangerEffect(type, x, y, msg){
           d:`M${cx*0.5},${cy*0.5} L${bx},${by}`,
           class:"crack-line crack-anim",
           "stroke-dasharray":"80",
-          style:`animation-delay:${i*0.04 + 0.1}s; opacity:.7;`
+          style:`animation-delay:${i*0.03 + 0.1}s; opacity:.7;`
         });
         g.appendChild(branch);
       }
     }
 
-    // 4. 玻璃碎片 - 更多、带高光、带拖尾
-    for(let i=0;i<16;i++){
-      const angle = (i/16)*Math.PI*2 + Math.random()*0.5;
-      const dist = 50 + Math.random()*60;
-      const size = 5 + Math.random()*10;
+    // 4. 玻璃碎片 - 大量飞溅，带拖尾
+    for(let i=0;i<20;i++){
+      const angle = (i/20)*Math.PI*2 + Math.random()*0.5;
+      const dist = 50 + Math.random()*80;
+      const size = 5 + Math.random()*12;
       const cx = Math.cos(angle)*20;
       const cy = Math.sin(angle)*20;
-      // 拖尾
       const tail = svgEl("line", {
         x1:0, y1:0, x2:cx, y2:cy,
-        stroke:"rgba(200,230,255,0.3)", "stroke-width":size*0.4,
+        stroke:"rgba(220,240,255,0.4)", "stroke-width":size*0.5,
         class:"shard-anim",
-        style:`--tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px; --r:${Math.random()*720 - 360}deg; animation-delay:${i*0.02}s; animation-duration:${0.7 + Math.random()*0.4}s`
+        style:`--tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px; --r:${Math.random()*720 - 360}deg; animation-delay:${i*0.015}s; animation-duration:${0.8 + Math.random()*0.5}s`
       });
       g.appendChild(tail);
-      // 碎片本体
       const shard = svgEl("polygon", {
         points:`0,0 ${cx+size},${cy-size} ${cx-size},${cy+size}`,
-        fill:"rgba(220,240,255,0.85)",
-        stroke:"rgba(255,255,255,0.9)", "stroke-width":0.8,
+        fill:"rgba(220,240,255,0.9)",
+        stroke:"rgba(255,255,255,1)", "stroke-width":1,
         class:"glass-shard shard-anim",
-        style:`--tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px; --r:${Math.random()*720 - 360}deg; animation-delay:${i*0.02}s; animation-duration:${0.7 + Math.random()*0.4}s`
+        style:`--tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px; --r:${Math.random()*720 - 360}deg; animation-delay:${i*0.015}s; animation-duration:${0.8 + Math.random()*0.5}s`
       });
       g.appendChild(shard);
     }
@@ -1996,19 +2077,19 @@ function playDangerEffect(type, x, y, msg){
 
   layerEffects.appendChild(g);
 
-  // 屏幕震动提示文字
+  // 屏幕震动提示文字 - 醒目大标签
   const label = document.createElement("div");
   label.className = "effect-label";
-  label.textContent = msg;
-  label.style.left = Math.min(Math.max(x, 100), window.innerWidth-200) + "px";
-  label.style.top = Math.max(y-50, 60) + "px";
+  label.innerHTML = '<span style="font-size:18px;margin-right:6px;">💥</span>' + msg;
+  label.style.left = Math.min(Math.max(x - 100, 20), window.innerWidth-220) + "px";
+  label.style.top = Math.max(y-80, 50) + "px";
   document.querySelector(".canvas-wrap").appendChild(label);
 
-  // 3.5秒后清理
+  // 5秒后清理（延长显示时间，让用户看清楚）
   setTimeout(()=>{
     g.remove();
     label.remove();
-  }, 3500);
+  }, 5000);
 }
 
 /* 让器材震动 */
