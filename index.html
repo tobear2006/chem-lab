@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.8';
+  var APP_VERSION = '3.0.9';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.8';
+  var APP_VERSION = '3.0.9';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.8';
+  var APP_VERSION = '3.0.9';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -335,10 +335,13 @@ input{font-family:inherit;}
 
 /* 液体流动性增强 */
 @keyframes liquidWave{
-  0%,100%{transform:translateX(0);}
-  50%{transform:translateX(2px);}
+  0%,100%{transform:translateX(0) translateY(0);}
+  25%{transform:translateX(2px) translateY(-1px);}
+  50%{transform:translateX(0) translateY(0);}
+  75%{transform:translateX(-2px) translateY(-1px);}
 }
 .liquid-wave{animation:liquidWave 2s ease-in-out infinite;}
+.liquid-surface{animation:liquidWave 1.5s ease-in-out infinite alternate;}
 .liquid-surface{fill:rgba(255,255,255,.25);}
 
 /* 固体颗粒 */
@@ -666,41 +669,53 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"少量物质反应容器，可直接加热"},
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-testTube" viewBox="0 0 50 120">
+      <symbol id="sym-testTube" viewBox="0 0 50 130">
   <defs>
-    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="rgba(180,210,235,0.4)"/>
-      <stop offset="15%" stop-color="rgba(220,240,255,0.12)"/>
-      <stop offset="40%" stop-color="rgba(255,255,255,0.04)"/>
-      <stop offset="60%" stop-color="rgba(255,255,255,0.06)"/>
-      <stop offset="85%" stop-color="rgba(220,240,255,0.12)"/>
-      <stop offset="100%" stop-color="rgba(180,210,235,0.4)"/>
+    <linearGradient id="ttGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.45)"/>
+      <stop offset="10%" stop-color="rgba(200,225,245,0.15)"/>
+      <stop offset="35%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="65%" stop-color="rgba(255,255,255,0.06)"/>
+      <stop offset="90%" stop-color="rgba(200,225,245,0.15)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.45)"/>
     </linearGradient>
-    <radialGradient id="testtubeHi" cx="30%" cy="20%" r="60%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
-      <stop offset="50%" stop-color="rgba(255,255,255,0.1)"/>
+    <linearGradient id="ttShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(60,100,130,0.03)"/>
+      <stop offset="80%" stop-color="rgba(60,100,130,0.15)"/>
+      <stop offset="100%" stop-color="rgba(40,70,100,0.3)"/>
+    </linearGradient>
+    <radialGradient id="ttHi" cx="28%" cy="25%" r="40%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.6)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.08)"/>
       <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
     </radialGradient>
-    <linearGradient id="testtubeShade" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="rgba(80,120,150,0.05)"/>
-      <stop offset="100%" stop-color="rgba(80,120,150,0.25)"/>
-    </linearGradient>
   </defs>
-  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#testtubeShade)" stroke="#a8c4d8" stroke-width="1.5"/>
-  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#glassGrad)" opacity="0.95"/>
-  <path d="M15 8 L15 95 Q15 111 25 111 Q35 111 35 95 L35 8" fill="url(#testtubeHi)" opacity="0.8"/>
-  <ellipse cx="25" cy="8" rx="10" ry="3" fill="rgba(180,210,235,0.35)" stroke="#a8c4d8" stroke-width="1.2"/>
-  <ellipse cx="25" cy="8" rx="10" ry="2" fill="rgba(255,255,255,0.18)"/>
-  <ellipse cx="25" cy="95" rx="10" ry="3" fill="rgba(150,190,220,0.3)" stroke="#a8c4d8" stroke-width="1.2"/>
-  <ellipse cx="25" cy="111" rx="10" ry="2" fill="rgba(255,255,255,0.2)"/>
-  <line x1="18" y1="30" x2="22" y2="30" stroke="#a8c4d8" stroke-width="0.8"/>
-  <line x1="18" y1="50" x2="22" y2="50" stroke="#a8c4d8" stroke-width="0.8"/>
-  <line x1="18" y1="70" x2="22" y2="70" stroke="#a8c4d8" stroke-width="0.8"/>
-  <line x1="18" y1="90" x2="22" y2="90" stroke="#a8c4d8" stroke-width="0.8"/>
-  <path d="M19 25 Q23 28 19 32" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M31 70 Q34 73 31 78" stroke="rgba(255,255,255,0.3)" fill="none" stroke-width="1" stroke-linecap="round"/>
+  <!-- 外壁阴影 -->
+  <path d="M14 6 L14 98 Q14 118 25 118 Q36 118 36 98 L36 6" fill="url(#ttShade)"/>
+  <!-- 玻璃主体 -->
+  <path d="M14 6 L14 98 Q14 118 25 118 Q36 118 36 98 L36 6" fill="url(#ttGlass)" stroke="rgba(140,175,200,0.7)" stroke-width="1.2"/>
+  <!-- 高光 -->
+  <path d="M14 6 L14 98 Q14 118 25 118 Q36 118 36 98 L36 6" fill="url(#ttHi)"/>
+  <!-- 管口翻边 -->
+  <ellipse cx="25" cy="6" rx="11" ry="3.5" fill="rgba(180,210,235,0.4)" stroke="rgba(140,175,200,0.8)" stroke-width="1"/>
+  <ellipse cx="25" cy="6" rx="11" ry="2" fill="rgba(255,255,255,0.25)"/>
+  <ellipse cx="25" cy="5" rx="9" ry="1.5" fill="rgba(255,255,255,0.15)"/>
+  <!-- 底部圆弧高光 -->
+  <ellipse cx="25" cy="115" rx="10" ry="2.5" fill="rgba(255,255,255,0.12)"/>
+  <!-- 刻度线 -->
+  <g stroke="rgba(120,155,180,0.6)" stroke-width="0.6">
+    <line x1="16" y1="25" x2="20" y2="25"/><line x1="16" y1="40" x2="22" y2="40"/>
+    <line x1="16" y1="55" x2="20" y2="55"/><line x1="16" y1="70" x2="22" y2="70"/>
+    <line x1="16" y1="85" x2="20" y2="85"/><line x1="16" y1="100" x2="22" y2="100"/>
+  </g>
+  <text x="23" y="42" font-size="4" fill="rgba(100,135,160,0.7)">10</text>
+  <text x="23" y="72" font-size="4" fill="rgba(100,135,160,0.7)">20</text>
+  <!-- 侧面反光带 -->
+  <path d="M18 15 Q20 18 18 25" stroke="rgba(255,255,255,0.7)" fill="none" stroke-width="2" stroke-linecap="round"/>
+  <path d="M32 60 Q34 64 32 70" stroke="rgba(255,255,255,0.3)" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M20 80 Q22 84 20 90" stroke="rgba(255,255,255,0.25)" fill="none" stroke-width="1" stroke-linecap="round"/>
 </symbol>`,
-    instSize:{w:50,h:120},
+    instSize:{w:50,h:130},
   },
   {
     id:"beaker", name:"烧杯", type:"container",
@@ -708,42 +723,56 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"较大体积反应容器，需垫石棉网加热"},
     ports:[{id:"mouth",x:50,y:5,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-beaker" viewBox="0 0 80 90">
+      <symbol id="sym-beaker" viewBox="0 0 80 95">
   <defs>
-    <linearGradient id="beakerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="rgba(180,210,235,0.45)"/>
-      <stop offset="12%" stop-color="rgba(220,240,255,0.12)"/>
-      <stop offset="40%" stop-color="rgba(255,255,255,0.04)"/>
-      <stop offset="60%" stop-color="rgba(255,255,255,0.06)"/>
-      <stop offset="88%" stop-color="rgba(220,240,255,0.12)"/>
-      <stop offset="100%" stop-color="rgba(180,210,235,0.45)"/>
+    <linearGradient id="bkGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.5)"/>
+      <stop offset="8%" stop-color="rgba(200,225,245,0.15)"/>
+      <stop offset="35%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="65%" stop-color="rgba(255,255,255,0.06)"/>
+      <stop offset="92%" stop-color="rgba(200,225,245,0.15)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.5)"/>
     </linearGradient>
-    <radialGradient id="beakerHi" cx="30%" cy="15%" r="55%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
-      <stop offset="50%" stop-color="rgba(255,255,255,0.1)"/>
+    <linearGradient id="bkShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(60,100,130,0.03)"/>
+      <stop offset="85%" stop-color="rgba(60,100,130,0.18)"/>
+      <stop offset="100%" stop-color="rgba(40,70,100,0.35)"/>
+    </linearGradient>
+    <radialGradient id="bkHi" cx="25%" cy="20%" r="50%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.55)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.08)"/>
       <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
     </radialGradient>
-    <linearGradient id="beakerShade" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="rgba(80,120,150,0.04)"/>
-      <stop offset="100%" stop-color="rgba(80,120,150,0.22)"/>
-    </linearGradient>
   </defs>
-  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerShade)" stroke="#a8c4d8" stroke-width="1.5"/>
-  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerGrad)" opacity="0.95"/>
-  <path d="M8 10 L8 80 Q8 86 14 86 L66 86 Q72 86 72 80 L72 10" fill="url(#beakerHi)" opacity="0.8"/>
-  <ellipse cx="40" cy="10" rx="32" ry="4" fill="rgba(180,210,235,0.35)" stroke="#a8c4d8" stroke-width="1.2"/>
-  <ellipse cx="40" cy="10" rx="32" ry="3" fill="rgba(255,255,255,0.2)"/>
-  <ellipse cx="40" cy="84" rx="32" ry="3" fill="rgba(150,190,220,0.3)" stroke="#a8c4d8" stroke-width="1.2"/>
-  <line x1="10" y1="26" x2="16" y2="26" stroke="#6a8ca0" stroke-width="1"/>
-  <line x1="10" y1="46" x2="16" y2="46" stroke="#6a8ca0" stroke-width="1"/>
-  <line x1="10" y1="66" x2="16" y2="66" stroke="#6a8ca0" stroke-width="1"/>
-  <text x="18" y="29" font-size="6" fill="#6a8ca0">100</text>
-  <text x="18" y="49" font-size="6" fill="#6a8ca0">150</text>
-  <text x="18" y="69" font-size="6" fill="#6a8ca0">200</text>
-  <path d="M12 18 Q16 22 12 26" stroke="rgba(255,255,255,0.65)" fill="none" stroke-width="2" stroke-linecap="round"/>
-  <path d="M65 18 Q69 24 65 30" stroke="rgba(255,255,255,0.3)" fill="none" stroke-width="1" stroke-linecap="round"/>
+  <!-- 外壁阴影 -->
+  <path d="M7 12 L7 82 Q7 90 15 90 L65 90 Q73 90 73 82 L73 12" fill="url(#bkShade)"/>
+  <!-- 玻璃主体 -->
+  <path d="M7 12 L7 82 Q7 90 15 90 L65 90 Q73 90 73 82 L73 12" fill="url(#bkGlass)" stroke="rgba(140,175,200,0.7)" stroke-width="1.3"/>
+  <!-- 高光 -->
+  <path d="M7 12 L7 82 Q7 90 15 90 L65 90 Q73 90 73 82 L73 12" fill="url(#bkHi)"/>
+  <!-- 烧杯嘴（倒液口） -->
+  <path d="M7 12 Q5 10 4 7 L7 12 L10 9" fill="rgba(180,210,235,0.3)" stroke="rgba(140,175,200,0.6)" stroke-width="0.8"/>
+  <path d="M73 12 Q75 10 76 7 L73 12 L70 9" fill="rgba(180,210,235,0.3)" stroke="rgba(140,175,200,0.6)" stroke-width="0.8"/>
+  <!-- 杯口 -->
+  <ellipse cx="40" cy="12" rx="33" ry="3.5" fill="rgba(180,210,235,0.35)" stroke="rgba(140,175,200,0.7)" stroke-width="1"/>
+  <ellipse cx="40" cy="12" rx="33" ry="2.5" fill="rgba(255,255,255,0.2)"/>
+  <ellipse cx="40" cy="11" rx="30" ry="1.5" fill="rgba(255,255,255,0.12)"/>
+  <!-- 底部弧形 -->
+  <ellipse cx="40" cy="88" rx="28" ry="2.5" fill="rgba(140,175,200,0.15)"/>
+  <!-- 刻度线 + 数字 -->
+  <g stroke="rgba(100,135,160,0.5)" stroke-width="0.7">
+    <line x1="10" y1="25" x2="18" y2="25"/><line x1="10" y1="40" x2="14" y2="40"/>
+    <line x1="10" y1="55" x2="18" y2="55"/><line x1="10" y1="70" x2="14" y2="70"/>
+    <line x1="10" y1="82" x2="18" y2="82"/>
+  </g>
+  <text x="20" y="27" font-size="5" fill="rgba(90,125,150,0.7)">200</text>
+  <text x="20" y="57" font-size="5" fill="rgba(90,125,150,0.7)">100</text>
+  <!-- 侧面反光带 -->
+  <path d="M11 18 Q14 22 11 28" stroke="rgba(255,255,255,0.7)" fill="none" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M65 18 Q69 24 65 32" stroke="rgba(255,255,255,0.3)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M11 45 Q13 50 11 55" stroke="rgba(255,255,255,0.2)" fill="none" stroke-width="1" stroke-linecap="round"/>
 </symbol>`,
-    instSize:{w:80,h:90},
+    instSize:{w:80,h:95},
   },
   {
     id:"flaskErlenmeyer", name:"锥形瓶", type:"container",
@@ -751,26 +780,37 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"滴定反应容器，需垫石棉网加热"},
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-flaskErlenmeyer" viewBox="0 0 70 100">
-        <defs>
-          <linearGradient id="flaskErlenShade" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="rgba(80,120,150,0.04)"/>
-            <stop offset="100%" stop-color="rgba(80,120,150,0.3)"/>
-          </linearGradient>
-          <radialGradient id="flaskErlenHi" cx="35%" cy="70%" r="50%">
-            <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
-            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-          </radialGradient>
-        </defs>
-        <path d="M30 8 L30 35 L8 88 Q8 95 15 95 L55 95 Q62 95 62 88 L40 35 L40 8 Z" fill="url(#flaskErlenShade)" stroke="#a8c4d8" stroke-width="1.5"/>
-        <path d="M30 8 L30 35 L8 88 Q8 95 15 95 L55 95 Q62 95 62 88 L40 35 L40 8 Z" fill="url(#flaskErlenHi)" opacity="0.7"/>
-        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
-        <ellipse cx="35" cy="8" rx="5" ry="1.5" fill="rgba(255,255,255,0.2)"/>
-        <line x1="15" y1="92" x2="20" y2="92" stroke="#6a8ca0" stroke-width="0.8"/>
-        <line x1="15" y1="86" x2="20" y2="86" stroke="#6a8ca0" stroke-width="0.8"/>
-        <path d="M33 13 Q35 16 33 19" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
-      </symbol>`,
-    instSize:{w:70,h:100},
+      <symbol id="sym-flaskErlenmeyer" viewBox="0 0 70 105">
+  <defs>
+    <linearGradient id="feGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.45)"/>
+      <stop offset="15%" stop-color="rgba(220,240,255,0.1)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="85%" stop-color="rgba(220,240,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.45)"/>
+    </linearGradient>
+    <linearGradient id="feShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(60,100,130,0.02)"/>
+      <stop offset="80%" stop-color="rgba(60,100,130,0.2)"/>
+      <stop offset="100%" stop-color="rgba(40,70,100,0.35)"/>
+    </linearGradient>
+    <radialGradient id="feHi" cx="30%" cy="75%" r="45%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+  <path d="M30 6 L30 32 L6 92 Q6 100 14 100 L56 100 Q64 100 64 92 L40 32 L40 6 Z" fill="url(#feShade)"/>
+  <path d="M30 6 L30 32 L6 92 Q6 100 14 100 L56 100 Q64 100 64 92 L40 32 L40 6 Z" fill="url(#feGlass)" stroke="rgba(140,175,200,0.7)" stroke-width="1.3"/>
+  <path d="M30 6 L30 32 L6 92 Q6 100 14 100 L56 100 Q64 100 64 92 L40 32 L40 6 Z" fill="url(#feHi)"/>
+  <ellipse cx="35" cy="6" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="rgba(140,175,200,0.7)" stroke-width="1"/>
+  <ellipse cx="35" cy="6" rx="5" ry="1.2" fill="rgba(255,255,255,0.25)"/>
+  <line x1="12" y1="95" x2="18" y2="95" stroke="rgba(100,135,160,0.5)" stroke-width="0.7"/>
+  <line x1="12" y1="88" x2="15" y2="88" stroke="rgba(100,135,160,0.4)" stroke-width="0.5"/>
+  <path d="M33 12 Q35 15 33 20" stroke="rgba(255,255,255,0.65)" fill="none" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M20 70 Q23 75 20 82" stroke="rgba(255,255,255,0.4)" fill="none" stroke-width="2" stroke-linecap="round"/>
+  <path d="M50 75 Q53 80 50 85" stroke="rgba(255,255,255,0.2)" fill="none" stroke-width="1" stroke-linecap="round"/>
+</symbol>`,
+    instSize:{w:70,h:105},
   },
   {
     id:"flaskRound", name:"圆底烧瓶", type:"container",
@@ -778,21 +818,33 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"加热反应容器，需垫石棉网"},
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-flaskRound" viewBox="0 0 70 110">
-        <defs>
-          <radialGradient id="flaskRoundBody" cx="35%" cy="50%" r="55%">
-            <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-            <stop offset="50%" stop-color="rgba(200,225,245,0.2)"/>
-            <stop offset="100%" stop-color="rgba(150,180,210,0.3)"/>
-          </radialGradient>
-        </defs>
-        <path d="M30 8 L30 45 Q15 55 15 75 Q15 100 35 100 Q55 100 55 75 Q55 55 40 45 L40 8 Z" fill="rgba(180,210,235,0.18)" stroke="#a8c4d8" stroke-width="1.5"/>
-        <ellipse cx="35" cy="80" rx="18" ry="18" fill="url(#flaskRoundBody)" opacity="0.8"/>
-        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
-        <path d="M22 65 Q26 70 22 78" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="2" stroke-linecap="round"/>
-        <path d="M33 13 Q35 16 33 19" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
-      </symbol>`,
-    instSize:{w:70,h:110},
+      <symbol id="sym-flaskRound" viewBox="0 0 70 115">
+  <defs>
+    <radialGradient id="frBody" cx="35%" cy="55%" r="55%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+      <stop offset="30%" stop-color="rgba(200,225,245,0.2)"/>
+      <stop offset="70%" stop-color="rgba(160,195,225,0.25)"/>
+      <stop offset="100%" stop-color="rgba(100,140,175,0.4)"/>
+    </radialGradient>
+    <linearGradient id="frNeck" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.4)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.4)"/>
+    </linearGradient>
+  </defs>
+  <!-- 颈部 -->
+  <path d="M30 6 L30 45 L40 45 L40 6 Z" fill="url(#frNeck)" stroke="rgba(140,175,200,0.7)" stroke-width="1.2"/>
+  <!-- 球体 -->
+  <ellipse cx="35" cy="80" rx="22" ry="22" fill="url(#frBody)" stroke="rgba(140,175,200,0.7)" stroke-width="1.3"/>
+  <!-- 颈口 -->
+  <ellipse cx="35" cy="6" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="rgba(140,175,200,0.7)" stroke-width="1"/>
+  <ellipse cx="35" cy="6" rx="5" ry="1.2" fill="rgba(255,255,255,0.25)"/>
+  <!-- 高光 -->
+  <path d="M22 70 Q26 75 22 82" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="28" cy="72" rx="4" ry="8" fill="rgba(255,255,255,0.15)" transform="rotate(-20 28 72)"/>
+  <path d="M33 12 Q35 15 33 20" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+</symbol>`,
+    instSize:{w:70,h:115},
   },
   {
     id:"flaskFlat", name:"平底烧瓶", type:"container",
@@ -800,20 +852,31 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"加热反应容器"},
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-flaskFlat" viewBox="0 0 70 110">
-        <defs>
-          <linearGradient id="flaskFlatShade" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="rgba(80,120,150,0.04)"/>
-            <stop offset="100%" stop-color="rgba(80,120,150,0.25)"/>
-          </linearGradient>
-        </defs>
-        <path d="M30 8 L30 45 Q15 55 15 95 L55 95 L55 45 Q55 55 40 45 L40 8 Z" fill="url(#flaskFlatShade)" stroke="#a8c4d8" stroke-width="1.5"/>
-        <ellipse cx="35" cy="8" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
-        <line x1="15" y1="88" x2="22" y2="88" stroke="#6a8ca0" stroke-width="0.8"/>
-        <line x1="15" y1="80" x2="22" y2="80" stroke="#6a8ca0" stroke-width="0.8"/>
-        <path d="M20 60 Q23 65 20 70" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.8" stroke-linecap="round"/>
-      </symbol>`,
-    instSize:{w:70,h:110},
+      <symbol id="sym-flaskFlat" viewBox="0 0 70 115">
+  <defs>
+    <linearGradient id="ffGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.45)"/>
+      <stop offset="15%" stop-color="rgba(220,240,255,0.1)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="85%" stop-color="rgba(220,240,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.45)"/>
+    </linearGradient>
+    <linearGradient id="ffShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(60,100,130,0.02)"/>
+      <stop offset="80%" stop-color="rgba(60,100,130,0.18)"/>
+      <stop offset="100%" stop-color="rgba(40,70,100,0.3)"/>
+    </linearGradient>
+  </defs>
+  <path d="M30 6 L30 45 Q15 50 15 95 L55 95 L55 45 Q55 50 40 45 L40 6 Z" fill="url(#ffShade)"/>
+  <path d="M30 6 L30 45 Q15 50 15 95 L55 95 L55 45 Q55 50 40 45 L40 6 Z" fill="url(#ffGlass)" stroke="rgba(140,175,200,0.7)" stroke-width="1.3"/>
+  <ellipse cx="35" cy="6" rx="5" ry="2" fill="rgba(180,210,235,0.4)" stroke="rgba(140,175,200,0.7)" stroke-width="1"/>
+  <ellipse cx="35" cy="6" rx="5" ry="1.2" fill="rgba(255,255,255,0.25)"/>
+  <ellipse cx="35" cy="94" rx="20" ry="2" fill="rgba(140,175,200,0.15)"/>
+  <path d="M20 55 Q23 60 20 68" stroke="rgba(255,255,255,0.55)" fill="none" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M50 60 Q53 66 50 72" stroke="rgba(255,255,255,0.25)" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M33 12 Q35 15 33 20" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+</symbol>`,
+    instSize:{w:70,h:115},
   },
   {
     id:"gasJar", name:"集气瓶", type:"container",
@@ -821,26 +884,39 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"收集气体"},
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-gasJar" viewBox="0 0 70 100">
-        <defs>
-          <linearGradient id="gasJarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="rgba(180,210,235,0.4)"/>
-            <stop offset="50%" stop-color="rgba(255,255,255,0.05)"/>
-            <stop offset="100%" stop-color="rgba(180,210,235,0.4)"/>
-          </linearGradient>
-          <radialGradient id="gasJarHi" cx="30%" cy="40%" r="60%">
-            <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
-            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-          </radialGradient>
-        </defs>
-        <rect x="10" y="8" width="50" height="85" rx="2" fill="rgba(180,210,235,0.18)" stroke="#a8c4d8" stroke-width="1.5"/>
-        <rect x="10" y="8" width="50" height="85" rx="2" fill="url(#gasJarGrad)" opacity="0.9"/>
-        <rect x="10" y="8" width="50" height="85" rx="2" fill="url(#gasJarHi)" opacity="0.8"/>
-        <rect x="8" y="4" width="54" height="6" rx="2" fill="rgba(180,210,235,0.4)" stroke="#a8c4d8" stroke-width="1.2"/>
-        <rect x="8" y="4" width="54" height="3" rx="2" fill="rgba(255,255,255,0.3)"/>
-        <path d="M14 15 Q18 20 14 25" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
-      </symbol>`,
-    instSize:{w:70,h:100},
+      <symbol id="sym-gasJar" viewBox="0 0 70 105">
+  <defs>
+    <linearGradient id="gjGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.5)"/>
+      <stop offset="10%" stop-color="rgba(220,240,255,0.12)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="90%" stop-color="rgba(220,240,255,0.12)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.5)"/>
+    </linearGradient>
+    <radialGradient id="gjHi" cx="28%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.5)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="gjShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(60,100,130,0.02)"/>
+      <stop offset="100%" stop-color="rgba(40,70,100,0.3)"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="50" height="88" rx="3" fill="url(#gjShade)"/>
+  <rect x="10" y="10" width="50" height="88" rx="3" fill="url(#gjGlass)" stroke="rgba(140,175,200,0.7)" stroke-width="1.3"/>
+  <rect x="10" y="10" width="50" height="88" rx="3" fill="url(#gjHi)"/>
+  <!-- 瓶口磨砂 -->
+  <rect x="8" y="5" width="54" height="8" rx="2" fill="rgba(180,210,235,0.4)" stroke="rgba(140,175,200,0.7)" stroke-width="1"/>
+  <rect x="8" y="5" width="54" height="3" rx="2" fill="rgba(255,255,255,0.3)"/>
+  <line x1="10" y1="9" x2="60" y2="9" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+  <!-- 底部 -->
+  <rect x="12" y="95" width="46" height="4" rx="1" fill="rgba(140,175,200,0.2)"/>
+  <!-- 反光带 -->
+  <path d="M14 18 Q17 25 14 35" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="2" stroke-linecap="round"/>
+  <path d="M55 20 Q58 30 55 40" stroke="rgba(255,255,255,0.25)" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M14 55 Q16 62 14 70" stroke="rgba(255,255,255,0.2)" fill="none" stroke-width="1" stroke-linecap="round"/>
+</symbol>`,
+    instSize:{w:70,h:105},
   },
   {
     id:"waterTrough", name:"水槽", type:"container",
@@ -886,13 +962,44 @@ EQUIPMENT = [
     props:{材质:"玻璃+铜",用途:"提供加热热源"},
     ports:[{id:"top",x:50,y:5,type:"flame",dir:"up"}],
     symbol:`
-      <symbol id="sym-alcoholLamp" viewBox="0 0 50 70">
-        <rect x="10" y="30" width="30" height="35" rx="3" fill="rgba(180,200,220,.3)" stroke="#9ab" stroke-width="1.5"/>
-        <rect x="20" y="20" width="10" height="12" fill="#c30" stroke="#800" stroke-width="1"/>
-        <ellipse cx="25" cy="20" rx="6" ry="2" fill="#a40"/>
-        <line x1="25" y1="8" x2="25" y2="20" stroke="#666" stroke-width="1.5"/>
-      </symbol>`,
-    instSize:{w:50,h:70},
+      <symbol id="sym-alcoholLamp" viewBox="0 0 50 75">
+  <defs>
+    <linearGradient id="alGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.4)"/>
+      <stop offset="30%" stop-color="rgba(220,240,255,0.08)"/>
+      <stop offset="70%" stop-color="rgba(255,255,255,0.05)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.4)"/>
+    </linearGradient>
+    <linearGradient id="alCap" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8a8a8a"/>
+      <stop offset="50%" stop-color="#d0d0d0"/>
+      <stop offset="100%" stop-color="#8a8a8a"/>
+    </linearGradient>
+    <linearGradient id="alLiquid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(200,220,180,0.4)"/>
+      <stop offset="100%" stop-color="rgba(150,180,120,0.5)"/>
+    </linearGradient>
+  </defs>
+  <!-- 底座 -->
+  <ellipse cx="25" cy="70" rx="18" ry="3" fill="rgba(100,120,140,0.3)"/>
+  <rect x="9" y="64" width="32" height="7" rx="3" fill="rgba(140,160,175,0.3)" stroke="rgba(100,120,140,0.6)" stroke-width="0.8"/>
+  <!-- 灯体玻璃 -->
+  <path d="M12 30 L12 64 Q12 68 16 68 L34 68 Q38 68 38 64 L38 30 Z" fill="url(#alGlass)" stroke="rgba(140,175,200,0.6)" stroke-width="1.2"/>
+  <!-- 酒精液体 -->
+  <path d="M13 45 L13 63 Q13 67 17 67 L33 67 Q37 67 37 63 L37 45 Z" fill="url(#alLiquid)" opacity="0.6"/>
+  <path d="M13 45 Q19 43 25 45 Q31 47 37 45" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <!-- 灯芯管 -->
+  <rect x="22" y="22" width="6" height="10" fill="url(#alCap)" stroke="rgba(80,80,80,0.6)" stroke-width="0.5"/>
+  <!-- 灯芯 -->
+  <rect x="23.5" y="18" width="3" height="6" fill="#888" stroke="#666" stroke-width="0.3"/>
+  <!-- 灯帽 -->
+  <rect x="18" y="14" width="14" height="8" rx="2" fill="url(#alCap)" stroke="rgba(80,80,80,0.6)" stroke-width="0.8"/>
+  <ellipse cx="25" cy="14" rx="7" ry="1.5" fill="rgba(255,255,255,0.3)"/>
+  <!-- 玻璃反光 -->
+  <path d="M14 35 Q16 40 14 50" stroke="rgba(255,255,255,0.5)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M35 38 Q37 45 35 55" stroke="rgba(255,255,255,0.2)" fill="none" stroke-width="0.8" stroke-linecap="round"/>
+</symbol>`,
+    instSize:{w:50,h:75},
   },
   // ---------- 工具类 ----------
   {
@@ -934,17 +1041,48 @@ EQUIPMENT = [
     props:{材质:"玻璃",用途:"量取液体体积（不可加热）"},
     ports:[{id:"mouth",x:50,y:4,type:"open",dir:"up"}],
     symbol:`
-      <symbol id="sym-measuringCylinder" viewBox="0 0 40 100">
-        <path d="M8 8 L8 90 Q8 95 13 95 L27 95 Q32 95 32 90 L32 8" fill="rgba(200,230,255,.15)" stroke="#b8d4e8" stroke-width="1.5"/>
-        <rect x="4" y="4" width="32" height="5" rx="2" fill="rgba(200,230,255,.25)" stroke="#b8d4e8" stroke-width="1.2"/>
-        <line x1="8" y1="25" x2="14" y2="25" stroke="#b8d4e8" stroke-width="1"/>
-        <line x1="8" y1="45" x2="14" y2="45" stroke="#b8d4e8" stroke-width="1"/>
-        <line x1="8" y1="65" x2="14" y2="65" stroke="#b8d4e8" stroke-width="1"/>
-        <text x="16" y="28" font-size="5" fill="#7a9cb0">30</text>
-        <text x="16" y="48" font-size="5" fill="#7a9cb0">60</text>
-        <text x="16" y="68" font-size="5" fill="#7a9cb0">90</text>
-      </symbol>`,
-    instSize:{w:40,h:100},
+      <symbol id="sym-measuringCylinder" viewBox="0 0 45 105">
+  <defs>
+    <linearGradient id="mcGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(160,195,225,0.5)"/>
+      <stop offset="15%" stop-color="rgba(220,240,255,0.1)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0.03)"/>
+      <stop offset="85%" stop-color="rgba(220,240,255,0.1)"/>
+      <stop offset="100%" stop-color="rgba(160,195,225,0.5)"/>
+    </linearGradient>
+    <linearGradient id="mcShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(60,100,130,0.02)"/>
+      <stop offset="100%" stop-color="rgba(40,70,100,0.3)"/>
+    </linearGradient>
+  </defs>
+  <!-- 底座 -->
+  <ellipse cx="22" cy="100" rx="16" ry="4" fill="rgba(120,150,175,0.3)" stroke="rgba(100,135,160,0.6)" stroke-width="1"/>
+  <rect x="8" y="96" width="28" height="5" rx="2" fill="rgba(140,175,200,0.25)" stroke="rgba(100,135,160,0.5)" stroke-width="0.8"/>
+  <!-- 筒体 -->
+  <path d="M10 10 L10 96 Q10 100 14 100 L30 100 Q34 100 34 96 L34 10" fill="url(#mcShade)"/>
+  <path d="M10 10 L10 96 Q10 100 14 100 L30 100 Q34 100 34 96 L34 10" fill="url(#mcGlass)" stroke="rgba(140,175,200,0.7)" stroke-width="1.2"/>
+  <!-- 喷嘴 -->
+  <path d="M10 10 Q8 7 7 4 L10 10 L13 7" fill="rgba(180,210,235,0.3)" stroke="rgba(140,175,200,0.6)" stroke-width="0.8"/>
+  <!-- 口部 -->
+  <ellipse cx="22" cy="10" rx="12" ry="2.5" fill="rgba(180,210,235,0.35)" stroke="rgba(140,175,200,0.7)" stroke-width="0.8"/>
+  <!-- 刻度线（密集） -->
+  <g stroke="rgba(100,135,160,0.5)" stroke-width="0.4">
+    <line x1="12" y1="20" x2="16" y2="20"/><line x1="12" y1="28" x2="14" y2="28"/>
+    <line x1="12" y1="36" x2="16" y2="36"/><line x1="12" y1="44" x2="14" y2="44"/>
+    <line x1="12" y1="52" x2="16" y2="52"/><line x1="12" y1="60" x2="14" y2="60"/>
+    <line x1="12" y1="68" x2="16" y2="68"/><line x1="12" y1="76" x2="14" y2="76"/>
+    <line x1="12" y1="84" x2="16" y2="84"/>
+  </g>
+  <text x="18" y="22" font-size="3.5" fill="rgba(90,125,150,0.7)">50</text>
+  <text x="18" y="38" font-size="3.5" fill="rgba(90,125,150,0.7)">40</text>
+  <text x="18" y="54" font-size="3.5" fill="rgba(90,125,150,0.7)">30</text>
+  <text x="18" y="70" font-size="3.5" fill="rgba(90,125,150,0.7)">20</text>
+  <text x="18" y="86" font-size="3.5" fill="rgba(90,125,150,0.7)">10</text>
+  <!-- 反光 -->
+  <path d="M13 18 Q15 25 13 35" stroke="rgba(255,255,255,0.6)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M30 25 Q32 35 30 45" stroke="rgba(255,255,255,0.2)" fill="none" stroke-width="0.8" stroke-linecap="round"/>
+</symbol>`,
+    instSize:{w:45,h:105},
   },
   {
     id:"spatula", name:"药匙", type:"tool",
@@ -1849,112 +1987,164 @@ function renderInstanceContents(g, inst, eq){
     const liquidY = dim.y;
     const liquidW = dim.w;
     const liquidH = dim.h;
+    const liquidId = "liq-" + inst.id;
 
-    // 液体主体 - 带渐变的半透明填充
-    const liquidId = "liq-" + inst.id + "-" + Date.now();
-    const gradId = "grad-" + inst.id;
+    // 液体主体 - 带多层渐变和波浪动画
+    const gradId = "grad-" + inst.id + "-" + Math.floor(Math.random()*1000000);
     const grad = svgEl("linearGradient", {
       id: gradId, x1:"0%", y1:"100%", x2:"0%", y2:"0%"
     });
-    const stop1 = svgEl("stop", {offset:"0%", "stop-color": liquidColor, "stop-opacity": 0.85});
-    const stop2 = svgEl("stop", {offset:"70%", "stop-color": liquidColor, "stop-opacity": 0.65});
-    const stop3 = svgEl("stop", {offset:"100%", "stop-color": liquidColor, "stop-opacity": 0.35});
-    grad.appendChild(stop1);
-    grad.appendChild(stop2);
-    grad.appendChild(stop3);
+    // 下层较深、上层较浅的渐变
+    const colorBase = liquidColor.startsWith("rgba") ? liquidColor : hexToRgba(liquidColor, 0.85);
+    const colorMid = liquidColor.startsWith("rgba") ? liquidColor : hexToRgba(liquidColor, 0.6);
+    const colorTop = liquidColor.startsWith("rgba") ? liquidColor : hexToRgba(liquidColor, 0.35);
+    grad.appendChild(svgEl("stop", {offset:"0%", "stop-color": colorBase, "stop-opacity": 0.9}));
+    grad.appendChild(svgEl("stop", {offset:"50%", "stop-color": colorMid, "stop-opacity": 0.7}));
+    grad.appendChild(svgEl("stop", {offset:"90%", "stop-color": colorTop, "stop-opacity": 0.5}));
+    grad.appendChild(svgEl("stop", {offset:"100%", "stop-color": colorTop, "stop-opacity": 0.3}));
     g.appendChild(grad);
 
-    // 液体路径：底部矩形 + 顶部波浪液面
-    const waveH = 4; // 波浪高度
-    const surfaceY = liquidY;
-    const leftX = liquidX;
-    const rightX = liquidX + liquidW;
-    const bottomY = liquidY + liquidH;
-    const wavePath = `M${leftX},${bottomY}
-                      L${leftX},${surfaceY + waveH}
-                      Q${leftX + liquidW*0.25},${surfaceY - waveH} ${leftX + liquidW*0.5},${surfaceY + waveH}
-                      T${rightX},${surfaceY - waveH}
-                      L${rightX},${bottomY}
-                      Z`;
+    // 液体底部区域（填充整个底部）
+    const bottomPath = `M${liquidX},${liquidY + liquidH}
+                        L${liquidX},${liquidY + 4}
+                        Q${liquidX + liquidW*0.25},${liquidY - 2} ${liquidX + liquidW*0.5},${liquidY + 4}
+                        T${liquidX + liquidW},${liquidY - 2}
+                        L${liquidX + liquidW},${liquidY + liquidH}
+                        Z`;
     const liquidBody = svgEl("path", {
-      d: wavePath,
+      d: bottomPath,
       fill: `url(#${gradId})`,
-      class: "liquid-wave"
+      class: "liquid-body"
     });
     g.appendChild(liquidBody);
 
-    // 液面高光（弯月面）
-    const surface = svgEl("path", {
-      d: `M${leftX},${surfaceY + waveH} Q${leftX + liquidW*0.25},${surfaceY - waveH} ${leftX + liquidW*0.5},${surfaceY + waveH} T${rightX},${surfaceY - waveH}`,
+    // 动态波浪液面（多层）
+    for(let layer=0; layer<3; layer++){
+      const yOff = layer * 2;
+      const surface = svgEl("path", {
+        d: `M${liquidX},${liquidY + 4 + yOff}
+            Q${liquidX + liquidW*0.25},${liquidY - 2 + yOff} ${liquidX + liquidW*0.5},${liquidY + 4 + yOff}
+            T${liquidX + liquidW},${liquidY - 2 + yOff}`,
+        fill: "none",
+        stroke: "rgba(255,255,255,"+(0.35 - layer*0.1)+")",
+        "stroke-width": 2 - layer*0.5,
+        class: "liquid-surface",
+        style: `animation:liquidWave ${1.5 + layer*0.5}s ease-in-out infinite; animation-delay:${layer*0.2}s`
+      });
+      g.appendChild(surface);
+    }
+
+    // 液面顶部高光（更亮的弯月面）
+    const meniscus = svgEl("path", {
+      d: `M${liquidX},${liquidY + 3} Q${liquidX + liquidW*0.3},${liquidY + 8} ${liquidX + liquidW*0.7},${liquidY + 3}`,
       fill: "none",
-      stroke: "rgba(255,255,255,0.5)",
+      stroke: "rgba(255,255,255,0.6)",
       "stroke-width": 1.5,
-      class: "liquid-surface"
+      "stroke-linecap": "round"
     });
-    g.appendChild(surface);
+    g.appendChild(meniscus);
 
     // 侧面玻璃反光
     const reflection = svgEl("rect", {
-      x: liquidX + liquidW*0.1, y: surfaceY + 4,
-      width: liquidW*0.15, height: liquidH - 8,
-      fill: "rgba(255,255,255,0.15)", rx: 2
+      x: liquidX + liquidW*0.08, y: liquidY + 8,
+      width: liquidW*0.18, height: liquidH - 12,
+      fill: "rgba(255,255,255,0.12)", rx: 3
     });
     g.appendChild(reflection);
 
-    // 气泡动画（如果标记了 bubbling）
+    // 气泡动画（更真实）
     if(inst.bubbling){
-      for(let i=0;i<5;i++){
-        const bx = liquidX + liquidW*(0.2 + i*0.15 + Math.random()*0.1);
+      const bubbleCount = 7;
+      for(let i=0;i<bubbleCount;i++){
+        const bx = liquidX + liquidW*(0.15 + i*0.1 + Math.random()*0.1);
+        const r = 1 + Math.random()*2.5;
+        const dur = 0.7 + Math.random()*0.8;
+        const delay = Math.random()*0.8;
         const bubble = svgEl("circle", {
-          cx: bx, cy: bottomY - 3,
-          r: 1.5 + Math.random()*2,
-          fill: "rgba(255,255,255,0.75)",
-          class: "bubble"
+          cx: bx, cy: liquidY + liquidH - 4, r: r,
+          fill: "rgba(255,255,255,0.7)",
+          class: "bubble",
+          style: `opacity:0;`
         });
-        const anim = svgEl("animate", {
+        // 气泡路径动画（左右轻微摆动上升）
+        const animateY = svgEl("animate", {
           attributeName:"cy",
-          from: bottomY - 3,
-          to: surfaceY + 6,
-          dur: (0.8 + i*0.25)+"s",
-          repeatCount:"indefinite"
+          from: liquidY + liquidH - 4,
+          to: liquidY + 6,
+          dur: dur+"s",
+          begin: delay+"s",
+          repeatCount: "indefinite"
         });
-        bubble.appendChild(anim);
+        const animateX = svgEl("animate", {
+          attributeName:"cx",
+          values: `${bx};${bx+2};${bx-2};${bx}`,
+          dur: (dur*0.8)+"s",
+          begin: delay+"s",
+          repeatCount: "indefinite"
+        });
+        const animateOp = svgEl("animate", {
+          attributeName:"opacity",
+          values: "0;0.8;0.8;0",
+          dur: dur+"s",
+          begin: delay+"s",
+          repeatCount: "indefinite"
+        });
+        bubble.appendChild(animateY);
+        bubble.appendChild(animateX);
+        bubble.appendChild(animateOp);
         g.appendChild(bubble);
       }
     }
 
     // 固体颗粒沉在液体底部
     if(totalSolidQty > 0){
-      drawSolidPile(g, solids, liquidX, bottomY, liquidW, true);
+      drawSolidPile(g, solids, liquidX, liquidY + liquidH, liquidW, true);
     }
   }
 
   // 干燥固体渲染（没有液体时）
   if(totalSolidQty > 0 && totalLiquidQty === 0 && eq.type === "container"){
-    const solidY = eq.id === "testTube" ? h - 8 : eq.id === "beaker" ? h - 10 : h - 8;
+    let solidY;
+    if(eq.id === "testTube") solidY = h - 10;
+    else if(eq.id === "beaker") solidY = h - 12;
+    else if(eq.id === "crucible") solidY = h - 10;
+    else solidY = h - 10;
     drawSolidPile(g, solids, w*0.25, solidY, w*0.5, false);
   }
 }
 
+// 辅助：hex转rgba
+function hexToRgba(hex, alpha){
+  if(hex.startsWith("rgba")) return hex;
+  if(hex.startsWith("rgb")) return hex;
+  hex = hex.replace("#","");
+  if(hex.length === 3) hex = hex.split("").map(c=>c+c).join("");
+  const r = parseInt(hex.substring(0,2), 16);
+  const g = parseInt(hex.substring(2,4), 16);
+  const b = parseInt(hex.substring(4,6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // 根据器材和液体量计算液体区域
 function getLiquidDim(eqId, w, h, qty){
-  const maxH = h * 0.55;
-  const baseH = Math.min(maxH, 18 + qty * 2.5);
+  const maxH = h * 0.5;
+  const baseH = Math.min(maxH, 16 + qty * 2.2);
   let dim = {x: 10, y: h - baseH - 8, w: w - 20, h: baseH};
   if(eqId === "testTube"){
-    dim = {x: w*0.22, y: h - baseH - 10, w: w*0.56, h: baseH};
+    dim = {x: w*0.22, y: h - baseH - 12, w: w*0.56, h: baseH};
   } else if(eqId === "beaker"){
-    dim = {x: w*0.12, y: h - baseH - 8, w: w*0.76, h: baseH};
+    dim = {x: w*0.14, y: h - baseH - 10, w: w*0.72, h: baseH};
   } else if(eqId === "flaskErlenmeyer" || eqId === "flaskRound" || eqId === "flaskFlat"){
-    dim = {x: w*0.18, y: h - baseH - 8, w: w*0.64, h: baseH};
+    // 锥形瓶和烧瓶的液体在底部球形/平区域
+    dim = {x: w*0.2, y: h - baseH - 10, w: w*0.6, h: baseH};
   } else if(eqId === "gasJar"){
-    dim = {x: w*0.12, y: h - baseH - 6, w: w*0.76, h: baseH};
+    dim = {x: w*0.14, y: h - baseH - 8, w: w*0.72, h: baseH};
   } else if(eqId === "waterTrough"){
-    dim = {x: w*0.08, y: h - baseH - 6, w: w*0.84, h: baseH};
+    dim = {x: w*0.08, y: h - baseH - 8, w: w*0.84, h: baseH};
   } else if(eqId === "measuringCylinder"){
-    dim = {x: w*0.2, y: h - baseH - 6, w: w*0.6, h: baseH};
+    dim = {x: w*0.22, y: h - baseH - 8, w: w*0.56, h: baseH};
   } else if(eqId === "evaporatingDish"){
-    dim = {x: w*0.15, y: h - baseH - 3, w: w*0.7, h: baseH};
+    dim = {x: w*0.18, y: h - baseH - 5, w: w*0.64, h: baseH};
   }
   return dim;
 }
@@ -1962,40 +2152,74 @@ function getLiquidDim(eqId, w, h, qty){
 // 绘制固体堆积
 function drawSolidPile(g, solids, x, y, w, inLiquid){
   const totalQty = solids.reduce((s,r)=>s+r.qty, 0);
-  const pileHeight = Math.min(12, 4 + totalQty * 1.2);
-  const pileWidth = Math.min(w*0.8, 10 + totalQty * 3);
+  const pileHeight = Math.min(14, 5 + totalQty * 1.5);
+  const pileWidth = Math.min(w*0.85, 12 + totalQty * 3.5);
   const cx = x + w/2;
-  const baseY = y - (inLiquid ? 2 : 0);
+  const baseY = y - (inLiquid ? 3 : 0);
 
   // 混合固体颜色
   let mixColor = solids.length > 0 ? REAGENTS.find(rg=>rg.id===solids[0].id).color : "#aaa";
   if(solids.length > 1){
-    // 多固体时取平均色（简化）
     const colors = solids.map(s => REAGENTS.find(rg=>rg.id===s.id).color);
     mixColor = colors[0];
   }
+  const baseColor = mixColor.startsWith("#") ? hexToRgba(mixColor, inLiquid?0.9:0.95) : mixColor;
+  const shadowColor = mixColor.startsWith("#") ? hexToRgba(darkenColor(mixColor, 0.7), 0.8) : mixColor;
 
-  // 固体堆积主体
+  // 底部阴影
+  const shadow = svgEl("ellipse", {
+    cx: cx, cy: baseY, rx: pileWidth*0.55, ry: 3,
+    fill: "rgba(0,0,0,0.2)"
+  });
+  g.appendChild(shadow);
+
+  // 固体堆积主体（多层不规则）
+  const pilePath = `M${cx - pileWidth/2},${baseY}
+                    Q${cx - pileWidth*0.3},${baseY - pileHeight*0.3} ${cx - pileWidth*0.15},${baseY - pileHeight*0.6}
+                    Q${cx},${baseY - pileHeight*1.15} ${cx + pileWidth*0.2},${baseY - pileHeight*0.7}
+                    Q${cx + pileWidth*0.4},${baseY - pileHeight*0.35} ${cx + pileWidth/2},${baseY}
+                    Z`;
   const pile = svgEl("path", {
-    d: `M${cx - pileWidth/2},${baseY} Q${cx},${baseY - pileHeight} ${cx + pileWidth/2},${baseY} Z`,
-    fill: mixColor, opacity: inLiquid ? 0.85 : 0.95,
-    stroke: "rgba(0,0,0,0.2)", "stroke-width": 0.5
+    d: pilePath,
+    fill: baseColor,
+    stroke: shadowColor,
+    "stroke-width": 0.5
   });
   g.appendChild(pile);
 
-  // 颗粒感
-  const grainCount = Math.min(30, 8 + totalQty * 2);
+  // 立体颗粒感
+  const grainCount = Math.min(40, 10 + totalQty * 3);
   for(let i=0;i<grainCount;i++){
+    const ratio = i / grainCount;
+    // 颗粒主要集中在堆积外层
     const gx = cx - pileWidth/2 + Math.random()*pileWidth;
-    const gy = baseY - Math.random()*pileHeight*0.85;
-    const size = 1 + Math.random()*1.5;
+    const maxY = baseY - (1 - Math.abs(gx-cx)/(pileWidth/2)) * pileHeight;
+    const gy = baseY - Math.random()*(baseY - maxY)*0.9;
+    const size = 0.8 + Math.random()*1.8;
+    // 每颗颗粒高光面
     const grain = svgEl("circle", {
       cx: gx, cy: gy, r: size,
       fill: "rgba(255,255,255,0.35)",
       class: "solid-grain"
     });
+    const grainCore = svgEl("circle", {
+      cx: gx - size*0.25, cy: gy - size*0.25, r: size*0.5,
+      fill: baseColor
+    });
+    g.appendChild(grainCore);
     g.appendChild(grain);
   }
+}
+
+// 颜色变暗辅助函数
+function darkenColor(hex, factor){
+  if(hex.startsWith("rgba") || hex.startsWith("rgb")) return hex;
+  hex = hex.replace("#","");
+  if(hex.length === 3) hex = hex.split("").map(c=>c+c).join("");
+  const r = Math.floor(parseInt(hex.substring(0,2),16)*factor);
+  const g = Math.floor(parseInt(hex.substring(2,4),16)*factor);
+  const b = Math.floor(parseInt(hex.substring(4,6),16)*factor);
+  return `rgb(${r},${g},${b})`;
 }
 
 /* ---------- 拖拽（document 级监听，rAF 节流，不重建 DOM） ---------- */
