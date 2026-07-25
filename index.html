@@ -1901,12 +1901,7 @@ function addReagentToSelected(reagentId){
     toast("该器材不能加药","warn");
     return;
   }
-  if(reagentId){
-    const qty = parseFloat($("#reagent-qty").value) || 5;
-    addReagent(inst.id, reagentId, qty);
-    return;
-  }
-  // 弹出选择框
+  // 无论从哪里触发，都弹出选择框让用户控制用量
   modalContext = {instId: inst.id};
   const modalList = $("#reagent-modal-list");
   modalList.innerHTML = REAGENTS.map(r=>`
@@ -1931,10 +1926,18 @@ function addReagentToSelected(reagentId){
     };
   });
   $("#reagent-modal-title").textContent = `为 ${eq.name} #${inst.id} 添加药品`;
-  // 初始化用量控件（默认选第一个药品）
-  const firstItem = modalList.querySelector(".list-item");
-  if(firstItem){
-    firstItem.click();
+  // 初始化用量控件：如果指定了药品就选中它，否则选第一个
+  let targetItem = null;
+  if(reagentId){
+    targetItem = modalList.querySelector('[data-id="' + reagentId + '"]');
+  }
+  if(!targetItem){
+    targetItem = modalList.querySelector(".list-item");
+  }
+  if(targetItem){
+    // 滚动到选中项
+    targetItem.scrollIntoView({block: "center"});
+    targetItem.click();
   } else {
     updateQtyControl(null, eq, inst);
   }
