@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.5';
+  var APP_VERSION = '3.0.6';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.5';
+  var APP_VERSION = '3.0.6';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.5';
+  var APP_VERSION = '3.0.6';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -244,10 +244,10 @@ input{font-family:inherit;}
 .equip-instance:active{cursor:grabbing;}
 .equip-instance.selected{filter:drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 14px var(--accent));}
 .equip-instance.selected .equip-outline{stroke:var(--accent); stroke-width:2; fill:none; opacity:0.9;}
-.port{fill:var(--accent); stroke:#fff; stroke-width:2; cursor:pointer; opacity:.8; filter:drop-shadow(0 0 4px var(--accent));}
-.port:hover{opacity:1; r:8;}
-.port.linking{opacity:1; fill:var(--warn); animation:portPulse 1s infinite; filter:drop-shadow(0 0 6px var(--warn));}
-@keyframes portPulse{0%,100%{r:6;} 50%{r:9;}}
+.port-halo{fill:rgba(34,211,238,0.15);}
+.port{fill:var(--accent); stroke:#fff; stroke-width:2; opacity:.9; filter:drop-shadow(0 0 6px var(--accent));}
+.port.linking{fill:var(--warn); stroke:"#fff"; stroke-width:2.5; filter:drop-shadow(0 0 10px var(--warn)); animation:portPulse 0.8s infinite;}
+@keyframes portPulse{0%,100%{r:7; opacity:1;} 50%{r:10; opacity:0.7;}}
 .connection-path{stroke:var(--text-dim); stroke-width:3; fill:none; opacity:.7; cursor:pointer;}
 .connection-path:hover{stroke:var(--accent); opacity:1;}
 .bubble{fill:rgba(255,255,255,.6);}
@@ -1703,41 +1703,58 @@ function renderCanvas(){
       }
     }
     
-    // ports（连接模式时显示）
+    // ports（连接模式时显示，仅渲染可视元素，事件由器材统一处理）
     if(state.tool === "connect"){
       eq.ports.forEach(p=>{
         const cx = p.x/100*eq.instSize.w;
         const cy = p.y/100*eq.instSize.h;
         const isLinkingFrom = state.linkingFrom && state.linkingFrom.instId===inst.id && state.linkingFrom.portId===p.id;
-        // 透明大命中区域（手指友好）
-        const hitArea = svgEl("circle", {
-          cx, cy, r:18, fill:"transparent", class:"port-hit",
-          style:"cursor:pointer;"
+        // 外圈光晕
+        const halo = svgEl("circle", {
+          cx, cy, r:12, fill:"rgba(34,211,238,0.15)", class:"port-halo",
+          style:"pointer-events:none;"
         });
         // 可视端口
         const port = svgEl("circle", {
-          cx, cy, r:6, class:"port"+(isLinkingFrom?" linking":"")
+          cx, cy, r:7, class:"port"+(isLinkingFrom?" linking":""),
+          style:"pointer-events:none;"
         });
-        const onPortClick = (e)=>{
-          e.stopPropagation();
-          e.preventDefault();
-          handlePortClick(inst.id, p.id);
-        };
-        hitArea.addEventListener("pointerdown", onPortClick);
-        hitArea.addEventListener("touchstart", (e)=>{ e.preventDefault(); onPortClick(e); }, {passive:false});
-        g.appendChild(hitArea);
+        g.appendChild(halo);
         g.appendChild(port);
       });
     }
     
     // 拖拽和点击（同时支持鼠标和触摸）
     const onPointerDown = (e)=>{
-      // connect 模式下，如果点的是端口区域，让端口事件优先处理
-      if(state.tool === "connect" && e.target.classList && (e.target.classList.contains("port") || e.target.classList.contains("port-hit"))){
-        return; // 不阻止，让端口的事件处理
-      }
       e.stopPropagation();
       e.preventDefault();
+
+      // connect 模式：通过坐标判断是否点中了端口
+      if(state.tool === "connect"){
+        const svgPt = svgPoint(e);
+        const localX = svgPt.x - inst.x;
+        const localY = svgPt.y - inst.y;
+        // 检查是否点中了某个端口（半径20内）
+        let hitPort = null;
+        for(const p of eq.ports){
+          const px = p.x/100*eq.instSize.w;
+          const py = p.y/100*eq.instSize.h;
+          const dx = localX - px;
+          const dy = localY - py;
+          if(dx*dx + dy*dy <= 400){ // r=20 的平方
+            hitPort = p;
+            break;
+          }
+        }
+        if(hitPort){
+          handlePortClick(inst.id, hitPort.id);
+          return;
+        }
+        // 没点中端口，选中器材
+        selectInstance(inst.id);
+        return;
+      }
+
       if(state.tool === "select"){
         selectInstance(inst.id);
         startDrag(e, inst, g);
@@ -1747,9 +1764,6 @@ function renderCanvas(){
         toggleHeat(inst.id);
       } else if(state.tool === "ignite"){
         toggleIgnite(inst.id);
-      } else if(state.tool === "connect"){
-        // 点器材本身不处理，要点 port
-        selectInstance(inst.id);
       } else if(state.tool === "pour"){
         pourFrom(inst.id);
       } else if(state.tool === "check-seal"){
@@ -2622,18 +2636,23 @@ function collectGas(id){
 /* ---------- 连接 ---------- */
 function handlePortClick(instId, portId){
   if(!state.linkingFrom){
+    // 第一次点击：选起点
     state.linkingFrom = {instId, portId};
     toast("已选起点，请点另一个器材的接口","ok");
     sfx("click");
     renderCanvas();
+  } else if(state.linkingFrom.instId === instId && state.linkingFrom.portId === portId){
+    // 点击的是同一个端口：取消选择（不报错）
+    state.linkingFrom = null;
+    toast("已取消连接","ok");
+    renderCanvas();
+  } else if(state.linkingFrom.instId === instId){
+    // 同一器材的不同端口：切换起点（不报错）
+    state.linkingFrom = {instId, portId};
+    toast("已切换起点","ok");
+    renderCanvas();
   } else {
-    if(state.linkingFrom.instId === instId){
-      toast("不能连接同一器材","warn");
-      sfx("warn");
-      state.linkingFrom = null;
-      renderCanvas();
-      return;
-    }
+    // 不同器材：建立连接
     state.connections.push({
       fromInstId: state.linkingFrom.instId,
       fromPortId: state.linkingFrom.portId,
