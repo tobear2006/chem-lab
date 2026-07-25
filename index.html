@@ -2,6 +2,44 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
+<script>
+(function(){
+  var APP_VERSION = '3.0.0';
+  var VER_KEY = 'chem-lab-version';
+  var stored = localStorage.getItem(VER_KEY);
+  if(stored !== APP_VERSION){
+    localStorage.setItem(VER_KEY, APP_VERSION);
+    if(!sessionStorage.getItem('chem-lab-reloaded')){
+      sessionStorage.setItem('chem-lab-reloaded', '1');
+      window.location.replace(location.pathname + '?v=' + APP_VERSION + '&t=' + Date.now());
+      return;
+    }
+  }
+  sessionStorage.removeItem('chem-lab-reloaded');
+})();
+</script>
+<script>
+// 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
+(function(){
+  var APP_VERSION = '3.0.0';
+  var VER_KEY = 'chem-lab-version';
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      fetch('version.json?t=' + Date.now(), {cache:'no-store'})
+        .then(function(r){return r.json();})
+        .then(function(data){
+          if(data.version && data.version !== APP_VERSION){
+            localStorage.removeItem(VER_KEY);
+            sessionStorage.setItem('chem-lab-reloaded', '1');
+            window.location.replace(location.pathname + '?v=' + data.version + '&t=' + Date.now());
+          }
+        })
+        .catch(function(){});
+    }, 2000);
+  });
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <meta name="theme-color" content="#22d3ee">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2556,31 +2594,41 @@ function init(){
 }
 init();
 
-// 注册 Service Worker（PWA 离线支持，网络优先策略）
+// 注册 Service Worker（PWA 离线支持，强制更新策略 v3）
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      console.log('PWA Service Worker 已注册');
-      // 检测到新版本时自动刷新
+      console.log('PWA Service Worker v3 已注册');
       reg.addEventListener('updatefound', ()=>{
         const newWorker = reg.installing;
         newWorker.addEventListener('statechange', ()=>{
           if(newWorker.state === 'activated'){
-            // 新版本已激活，自动刷新页面
             if(navigator.serviceWorker.controller){
               window.location.reload();
             }
           }
         });
       });
+      // 每30秒检查一次更新
+      setInterval(()=>{
+        reg.update().catch(()=>{});
+      }, 30000);
     }).catch(err=>{
       console.log('SW 注册失败:', err);
     });
-    // 监听控制器变化（切换到新SW时刷新）
+    
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', ()=>{
       if(!refreshing){
         refreshing = true;
+        window.location.reload();
+      }
+    });
+    
+    // 监听 SW 发来的强制刷新消息
+    navigator.serviceWorker.addEventListener('message', event=>{
+      if(event.data && event.data.type === 'FORCE_RELOAD'){
+        console.log('收到SW强制刷新指令，版本:', event.data.version);
         window.location.reload();
       }
     });
