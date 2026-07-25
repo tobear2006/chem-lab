@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.1';
+  var APP_VERSION = '3.0.2';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.1';
+  var APP_VERSION = '3.0.2';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.1';
+  var APP_VERSION = '3.0.2';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -253,60 +253,97 @@ input{font-family:inherit;}
 .bubble{fill:rgba(255,255,255,.6);}
 .flame{filter:drop-shadow(0 0 4px var(--flame));}
 
-/* 写实错误后果动画 */
+/* 写实错误后果动画 - v2 增强版 */
 @keyframes shatterShake{
-  0%,100%{transform:translate(0,0);}
-  10%{transform:translate(-2px,-2px) rotate(-1deg);}
-  20%{transform:translate(2px,2px) rotate(1deg);}
-  30%{transform:translate(-3px,1px) rotate(-2deg);}
-  40%{transform:translate(3px,-2px) rotate(2deg);}
-  50%{transform:translate(-2px,2px) rotate(-1deg);}
-  60%{transform:translate(2px,-1px) rotate(1deg);}
-  70%{transform:translate(-1px,1px);}
-  80%,90%{transform:translate(0,0);}
+  0%,100%{transform:translate(0,0) scale(1);}
+  10%{transform:translate(-3px,-3px) rotate(-2deg) scale(1.02);}
+  20%{transform:translate(4px,3px) rotate(2deg) scale(0.98);}
+  30%{transform:translate(-4px,2px) rotate(-3deg) scale(1.01);}
+  40%{transform:translate(5px,-3px) rotate(3deg) scale(0.99);}
+  50%{transform:translate(-3px,3px) rotate(-2deg) scale(1.02);}
+  60%{transform:translate(3px,-2px) rotate(2deg) scale(0.98);}
+  70%{transform:translate(-2px,2px) rotate(-1deg);}
+  80%,90%{transform:translate(0,0) scale(1);}
 }
-.shake-anim{animation:shatterShake 0.5s ease-in-out;}
+.shake-anim{animation:shatterShake 0.8s ease-in-out;}
 
 @keyframes crackGrow{
-  from{stroke-dashoffset:100; opacity:0;}
-  to{stroke-dashoffset:0; opacity:1;}
+  0%{stroke-dashoffset:200; opacity:0; stroke-width:0.5; filter:drop-shadow(0 0 0 #fff);}
+  30%{opacity:1; stroke-width:3; filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px var(--danger));}
+  100%{stroke-dashoffset:0; opacity:1; stroke-width:2; filter:drop-shadow(0 0 4px rgba(255,255,255,.8));}
 }
-.crack-line{fill:none; stroke:#fff; stroke-width:1.5; opacity:0;}
-.crack-anim{animation:crackGrow 0.3s forwards;}
+.crack-line{fill:none; stroke:#fff; stroke-width:1.5; opacity:0; stroke-linecap:round;}
+.crack-anim{animation:crackGrow 0.5s forwards;}
+
+@keyframes crackGlow{
+  0%,100%{filter:drop-shadow(0 0 2px rgba(255,255,255,.5));}
+  50%{filter:drop-shadow(0 0 8px rgba(255,255,255,.9)) drop-shadow(0 0 12px var(--danger));}
+}
+.crack-glow{animation:crackGlow 1.5s ease-in-out infinite;}
 
 @keyframes shardFly{
-  0%{opacity:1; transform:translate(0,0) rotate(0deg);}
-  100%{opacity:0; transform:translate(var(--tx),var(--ty)) rotate(var(--r));}
+  0%{opacity:1; transform:translate(0,0) rotate(0deg) scale(1); filter:drop-shadow(0 0 4px rgba(200,230,255,.8));}
+  40%{opacity:1; transform:translate(calc(var(--tx)*0.5), calc(var(--ty)*0.5)) rotate(calc(var(--r)*0.5)) scale(1.1);}
+  100%{opacity:0; transform:translate(var(--tx),var(--ty)) rotate(var(--r)) scale(0.3);}
 }
 .glass-shard{opacity:0;}
-.shard-anim{animation:shardFly 0.6s forwards ease-out;}
+.shard-anim{animation:shardFly 0.9s forwards ease-out;}
+
+@keyframes shockwaveExpand{
+  0%{r:0; opacity:0.9; stroke-width:4; filter:drop-shadow(0 0 10px #fff);}
+  100%{r:120; opacity:0; stroke-width:0; filter:drop-shadow(0 0 30px transparent);}
+}
+.shockwave{fill:none; stroke:#fff; opacity:0; animation:shockwaveExpand 0.6s forwards ease-out;}
+
+@keyframes flashPulse{
+  0%{opacity:0.9;}
+  100%{opacity:0;}
+}
+.flash-pulse{animation:flashPulse 0.25s forwards;}
 
 @keyframes splashUp{
-  0%{transform:translateY(0) scaleY(1); opacity:0.9;}
-  100%{transform:translateY(-60px) scaleY(0.4); opacity:0;}
+  0%{transform:translateY(0) scaleY(1) scaleX(1); opacity:0.95; filter:drop-shadow(0 0 4px currentColor);}
+  60%{opacity:0.8;}
+  100%{transform:translateY(-80px) scaleY(0.2) scaleX(1.6); opacity:0;}
 }
 .acid-splash{opacity:0;}
-.splash-anim{animation:splashUp 0.5s forwards ease-out;}
+.splash-anim{animation:splashUp 0.7s forwards ease-out;}
 
 @keyframes explodeScale{
-  0%{transform:scale(0); opacity:1;}
-  50%{transform:scale(2.5); opacity:0.8;}
-  100%{transform:scale(4); opacity:0;}
+  0%{transform:scale(0); opacity:1; filter:drop-shadow(0 0 10px #fb923c);}
+  40%{transform:scale(3); opacity:0.9; filter:drop-shadow(0 0 40px #ef4444);}
+  100%{transform:scale(6); opacity:0;}
 }
 .explosion-ring{opacity:0;}
-.explode-anim{animation:explodeScale 0.7s forwards ease-out;}
+.explode-anim{animation:explodeScale 0.9s forwards ease-out;}
 
 @keyframes smokeRise{
-  0%{transform:translateY(0) scale(1); opacity:0.8;}
-  100%{transform:translateY(-80px) scale(2); opacity:0;}
+  0%{transform:translateY(0) scale(1); opacity:0.85; filter:blur(0);}
+  100%{transform:translateY(-100px) scale(3); opacity:0; filter:blur(8px);}
 }
 .smoke-puff{opacity:0;}
-.smoke-anim{animation:smokeRise 1.2s forwards ease-out;}
+.smoke-anim{animation:smokeRise 1.8s forwards ease-out;}
 
-.effect-label{position:absolute; background:rgba(0,0,0,.85); color:var(--danger); padding:8px 14px; border-radius:6px; font-size:13px; font-weight:600; pointer-events:none; z-index:100; border:1px solid var(--danger); box-shadow:0 0 12px var(--danger);}
+.effect-label{position:absolute; background:rgba(10,0,0,.92); color:var(--danger); padding:10px 18px; border-radius:8px; font-size:14px; font-weight:700; pointer-events:none; z-index:100; border:2px solid var(--danger); box-shadow:0 0 20px var(--danger), inset 0 0 10px rgba(248,113,113,.2); animation:labelPulse 2s ease-in-out infinite;}
+@keyframes labelPulse{
+  0%,100%{transform:scale(1); box-shadow:0 0 20px var(--danger);}
+  50%{transform:scale(1.03); box-shadow:0 0 30px var(--danger), 0 0 50px rgba(248,113,113,.4);}
+}
 
+/* 器材破碎状态 */
+.broken-crack{fill:none; stroke:rgba(255,255,255,.9); stroke-width:1.5; opacity:.9; filter:drop-shadow(0 0 3px rgba(255,255,255,.5));}
 
-/* 响应式（小屏） */
+/* 液体流动性增强 */
+@keyframes liquidWave{
+  0%,100%{transform:translateX(0);}
+  50%{transform:translateX(2px);}
+}
+.liquid-wave{animation:liquidWave 2s ease-in-out infinite;}
+.liquid-surface{fill:rgba(255,255,255,.25);}
+
+/* 固体颗粒 */
+.solid-grain{opacity:.9;}
+
 @media(max-width:900px){
   .main{grid-template-columns:160px 1fr 0;}
   .panel.right{display:none;}
@@ -1425,7 +1462,25 @@ function renderCanvas(){
     // 器材图形
     const use = svgEl("use", {href:`#sym-${eq.id}`, width:eq.instSize.w, height:eq.instSize.h});
     g.appendChild(use);
-    
+
+    // 破碎状态裂纹
+    if(inst.broken){
+      const crackGroup = svgEl("g", {class:"broken-crack"});
+      for(let i=0;i<4;i++){
+        const angle = (i/4)*Math.PI + Math.random()*0.3;
+        const r = eq.instSize.w*0.45;
+        const cx = eq.instSize.w/2 + Math.cos(angle)*r*0.5;
+        const cy = eq.instSize.h/2 + Math.sin(angle)*r*0.5;
+        const ex = cx + Math.cos(angle)*r*0.8;
+        const ey = cy + Math.sin(angle)*r*0.8;
+        const crack = svgEl("path", {
+          d:`M${cx},${cy} L${ex},${ey}`,
+          stroke:"rgba(255,255,255,.9)", "stroke-width":1.5, fill:"none", opacity:.9
+        });
+        crackGroup.appendChild(crack);
+      }
+      g.appendChild(crackGroup);
+    }    
     // 选中时的发光描边（可见的选中提示）
     if(state.selectedId === inst.id){
       const outline = svgEl("rect", {
@@ -1514,7 +1569,8 @@ function renderInstanceContents(g, inst, eq){
   if(inst.reagents.length === 0) return;
   const w = eq.instSize.w;
   const h = eq.instSize.h;
-  // 容器内液体
+
+  // 容器内液体/固体分类
   const liquids = inst.reagents.filter(r=>{
     const rg = REAGENTS.find(x=>x.id===r.id);
     return rg && rg.state === "liquid";
@@ -1523,89 +1579,187 @@ function renderInstanceContents(g, inst, eq){
     const rg = REAGENTS.find(x=>x.id===r.id);
     return rg && rg.state === "solid";
   });
-  
-  // 液体（取第一个液体的颜色作为整体颜色，或混合色）
-  if(liquids.length>0 && eq.type === "container"){
+
+  // 计算液体/固体体积
+  const totalLiquidQty = liquids.reduce((s,r)=>s+r.qty, 0);
+  const totalSolidQty = solids.reduce((s,r)=>s+r.qty, 0);
+
+  // 液体颜色计算
+  let liquidColor = null;
+  if(liquids.length > 0){
     const rg = REAGENTS.find(x=>x.id===liquids[0].id);
-    let liquidColor = rg.color;
+    liquidColor = rg.color;
+    // 无色液体给淡色调便于观察
+    if(liquidColor === "#fff" || liquidColor === "#ffffff" || liquidColor === "transparent" || liquidColor === "rgba(0,0,0,0)"){
+      liquidColor = "rgba(210,235,255,0.35)";
+    }
     // 酚酞遇碱变红
     if(inst.reagents.some(r=>r.id==="phenolphthalein") && inst.reagents.some(r=>r.id==="naoh")){
       liquidColor = "#FF1493";
     }
     // 石蕊遇酸变红
-    if(inst.reagents.some(r=>r.id==="litmus") && inst.reagents.some(r=>r.id==="hcl"||r.id==="h2so4")){
+    if(inst.reagents.some(r=>r.id==="litmus") && inst.reagents.some(r=>["hcl","h2so4","hno3"].includes(r.id))){
       liquidColor = "#E74C3C";
     }
     // 沉淀混合色
-    const hasBluePpt = inst.reagents.some(r=>r.id==="cuoh2");
-    if(hasBluePpt) liquidColor = "#1E90FF";
-    const hasBrownPpt = inst.reagents.some(r=>r.id==="feoh3");
-    if(hasBrownPpt) liquidColor = "#8B4513";
-    const hasWhitePpt = inst.reagents.some(r=>r.id==="agcl"||r.id==="baso4"||r.id==="caco3powder");
-    if(hasWhitePpt) liquidColor = "#E8E8E8";
-    
-    // 容器底部画液体
-    let liquidY, liquidH, liquidX, liquidW;
-    if(eq.id === "testTube"){
-      liquidY = 70; liquidH = 35; liquidX = 18; liquidW = w-36;
-    } else if(eq.id === "beaker"){
-      liquidY = 30; liquidH = 50; liquidX = 12; liquidW = w-24;
-    } else if(eq.id === "flaskErlenmeyer" || eq.id === "flaskRound" || eq.id === "flaskFlat"){
-      liquidY = 60; liquidH = 30; liquidX = 15; liquidW = w-30;
-    } else if(eq.id === "gasJar"){
-      liquidY = 20; liquidH = 70; liquidX = 14; liquidW = w-28;
-    } else if(eq.id === "waterTrough"){
-      liquidY = 35; liquidH = 28; liquidX = 10; liquidW = w-20;
-    } else if(eq.id === "measuringCylinder"){
-      liquidY = 50; liquidH = 40; liquidX = 12; liquidW = w-24;
-    } else if(eq.id === "evaporatingDish"){
-      liquidY = 12; liquidH = 10; liquidX = 12; liquidW = w-24;
-    } else {
-      liquidY = h-30; liquidH = 20; liquidX = 10; liquidW = w-20;
-    }
-    const rect = svgEl("rect", {
-      x:liquidX, y:liquidY, width:liquidW, height:liquidH,
-      fill:liquidColor, opacity:"0.7", rx:2
+    if(inst.reagents.some(r=>r.id==="cuoh2")) liquidColor = "#1E90FF";
+    if(inst.reagents.some(r=>r.id==="feoh3")) liquidColor = "#8B4513";
+    if(inst.reagents.some(r=>["agcl","baso4","caco3powder"].includes(r.id))) liquidColor = "#E8E8E8";
+  }
+
+  // 液体真实渲染
+  if(totalLiquidQty > 0 && eq.type === "container"){
+    const dim = getLiquidDim(eq.id, w, h, totalLiquidQty);
+    const liquidX = dim.x;
+    const liquidY = dim.y;
+    const liquidW = dim.w;
+    const liquidH = dim.h;
+
+    // 液体主体 - 带渐变的半透明填充
+    const liquidId = "liq-" + inst.id + "-" + Date.now();
+    const gradId = "grad-" + inst.id;
+    const grad = svgEl("linearGradient", {
+      id: gradId, x1:"0%", y1:"100%", x2:"0%", y2:"0%"
     });
-    g.appendChild(rect);
-    
+    const stop1 = svgEl("stop", {offset:"0%", "stop-color": liquidColor, "stop-opacity": 0.85});
+    const stop2 = svgEl("stop", {offset:"70%", "stop-color": liquidColor, "stop-opacity": 0.65});
+    const stop3 = svgEl("stop", {offset:"100%", "stop-color": liquidColor, "stop-opacity": 0.35});
+    grad.appendChild(stop1);
+    grad.appendChild(stop2);
+    grad.appendChild(stop3);
+    g.appendChild(grad);
+
+    // 液体路径：底部矩形 + 顶部波浪液面
+    const waveH = 4; // 波浪高度
+    const surfaceY = liquidY;
+    const leftX = liquidX;
+    const rightX = liquidX + liquidW;
+    const bottomY = liquidY + liquidH;
+    const wavePath = `M${leftX},${bottomY}
+                      L${leftX},${surfaceY + waveH}
+                      Q${leftX + liquidW*0.25},${surfaceY - waveH} ${leftX + liquidW*0.5},${surfaceY + waveH}
+                      T${rightX},${surfaceY - waveH}
+                      L${rightX},${bottomY}
+                      Z`;
+    const liquidBody = svgEl("path", {
+      d: wavePath,
+      fill: `url(#${gradId})`,
+      class: "liquid-wave"
+    });
+    g.appendChild(liquidBody);
+
+    // 液面高光（弯月面）
+    const surface = svgEl("path", {
+      d: `M${leftX},${surfaceY + waveH} Q${leftX + liquidW*0.25},${surfaceY - waveH} ${leftX + liquidW*0.5},${surfaceY + waveH} T${rightX},${surfaceY - waveH}`,
+      fill: "none",
+      stroke: "rgba(255,255,255,0.5)",
+      "stroke-width": 1.5,
+      class: "liquid-surface"
+    });
+    g.appendChild(surface);
+
+    // 侧面玻璃反光
+    const reflection = svgEl("rect", {
+      x: liquidX + liquidW*0.1, y: surfaceY + 4,
+      width: liquidW*0.15, height: liquidH - 8,
+      fill: "rgba(255,255,255,0.15)", rx: 2
+    });
+    g.appendChild(reflection);
+
     // 气泡动画（如果标记了 bubbling）
     if(inst.bubbling){
-      for(let i=0;i<3;i++){
+      for(let i=0;i<5;i++){
+        const bx = liquidX + liquidW*(0.2 + i*0.15 + Math.random()*0.1);
         const bubble = svgEl("circle", {
-          cx: liquidX + liquidW*(0.3+i*0.2),
-          cy: liquidY + liquidH - 5,
-          r:2.5,
-          fill:"rgba(255,255,255,0.7)",
-          class:"bubble"
+          cx: bx, cy: bottomY - 3,
+          r: 1.5 + Math.random()*2,
+          fill: "rgba(255,255,255,0.75)",
+          class: "bubble"
         });
         const anim = svgEl("animate", {
           attributeName:"cy",
-          from: liquidY + liquidH,
-          to: liquidY,
-          dur: (1+i*0.3)+"s",
+          from: bottomY - 3,
+          to: surfaceY + 6,
+          dur: (0.8 + i*0.25)+"s",
           repeatCount:"indefinite"
         });
         bubble.appendChild(anim);
         g.appendChild(bubble);
       }
     }
+
+    // 固体颗粒沉在液体底部
+    if(totalSolidQty > 0){
+      drawSolidPile(g, solids, liquidX, bottomY, liquidW, true);
+    }
   }
-  
-  // 固体（容器底部画色块）
-  if(solids.length>0 && eq.type === "container"){
-    solids.forEach((r, i)=>{
-      const rg = REAGENTS.find(x=>x.id===r.id);
-      let solidY;
-      if(eq.id === "testTube") solidY = 95;
-      else if(eq.id === "beaker") solidY = 78;
-      else solidY = h-8;
-      const rect = svgEl("rect", {
-        x: w/2-10, y: solidY-3, width: 20, height: 3,
-        fill: rg.color, opacity:0.9
-      });
-      g.appendChild(rect);
+
+  // 干燥固体渲染（没有液体时）
+  if(totalSolidQty > 0 && totalLiquidQty === 0 && eq.type === "container"){
+    const solidY = eq.id === "testTube" ? h - 8 : eq.id === "beaker" ? h - 10 : h - 8;
+    drawSolidPile(g, solids, w*0.25, solidY, w*0.5, false);
+  }
+}
+
+// 根据器材和液体量计算液体区域
+function getLiquidDim(eqId, w, h, qty){
+  const maxH = h * 0.55;
+  const baseH = Math.min(maxH, 18 + qty * 2.5);
+  let dim = {x: 10, y: h - baseH - 8, w: w - 20, h: baseH};
+  if(eqId === "testTube"){
+    dim = {x: w*0.22, y: h - baseH - 10, w: w*0.56, h: baseH};
+  } else if(eqId === "beaker"){
+    dim = {x: w*0.12, y: h - baseH - 8, w: w*0.76, h: baseH};
+  } else if(eqId === "flaskErlenmeyer" || eqId === "flaskRound" || eqId === "flaskFlat"){
+    dim = {x: w*0.18, y: h - baseH - 8, w: w*0.64, h: baseH};
+  } else if(eqId === "gasJar"){
+    dim = {x: w*0.12, y: h - baseH - 6, w: w*0.76, h: baseH};
+  } else if(eqId === "waterTrough"){
+    dim = {x: w*0.08, y: h - baseH - 6, w: w*0.84, h: baseH};
+  } else if(eqId === "measuringCylinder"){
+    dim = {x: w*0.2, y: h - baseH - 6, w: w*0.6, h: baseH};
+  } else if(eqId === "evaporatingDish"){
+    dim = {x: w*0.15, y: h - baseH - 3, w: w*0.7, h: baseH};
+  }
+  return dim;
+}
+
+// 绘制固体堆积
+function drawSolidPile(g, solids, x, y, w, inLiquid){
+  const totalQty = solids.reduce((s,r)=>s+r.qty, 0);
+  const pileHeight = Math.min(12, 4 + totalQty * 1.2);
+  const pileWidth = Math.min(w*0.8, 10 + totalQty * 3);
+  const cx = x + w/2;
+  const baseY = y - (inLiquid ? 2 : 0);
+
+  // 混合固体颜色
+  let mixColor = solids.length > 0 ? REAGENTS.find(rg=>rg.id===solids[0].id).color : "#aaa";
+  if(solids.length > 1){
+    // 多固体时取平均色（简化）
+    const colors = solids.map(s => REAGENTS.find(rg=>rg.id===s.id).color);
+    mixColor = colors[0];
+  }
+
+  // 固体堆积主体
+  const pile = svgEl("path", {
+    d: `M${cx - pileWidth/2},${baseY} Q${cx},${baseY - pileHeight} ${cx + pileWidth/2},${baseY} Z`,
+    fill: mixColor, opacity: inLiquid ? 0.85 : 0.95,
+    stroke: "rgba(0,0,0,0.2)", "stroke-width": 0.5
+  });
+  g.appendChild(pile);
+
+  // 颗粒感
+  const grainCount = Math.min(30, 8 + totalQty * 2);
+  for(let i=0;i<grainCount;i++){
+    const gx = cx - pileWidth/2 + Math.random()*pileWidth;
+    const gy = baseY - Math.random()*pileHeight*0.85;
+    const size = 1 + Math.random()*1.5;
+    const grain = svgEl("circle", {
+      cx: gx, cy: gy, r: size,
+      fill: "rgba(255,255,255,0.35)",
+      class: "solid-grain"
     });
+    g.appendChild(grain);
   }
 }
 
@@ -1678,73 +1832,125 @@ function updateConnectionPaths(){
 /* ---------- 写实错误后果动画 ---------- */
 function playDangerEffect(type, x, y, msg){
   const g = svgEl("g", {class:"danger-effect", transform:`translate(${x},${y})`});
-  
+
   if(type === "shatter"){
-    // 炸裂：裂纹+碎片
-    for(let i=0;i<6;i++){
-      const angle = (i/6)*Math.PI*2;
-      const r = 30 + Math.random()*20;
+    // 炸裂：闪光+冲击波+裂纹+碎片
+    // 1. 闪光
+    const flash = svgEl("circle", {cx:0, cy:0, r:60, fill:"#fff", class:"flash-pulse"});
+    g.appendChild(flash);
+
+    // 2. 冲击波环
+    const shock = svgEl("circle", {cx:0, cy:0, r:0, class:"shockwave"});
+    g.appendChild(shock);
+
+    // 3. 裂纹 - 更多更粗
+    for(let i=0;i<8;i++){
+      const angle = (i/8)*Math.PI*2;
+      const r = 25 + Math.random()*15;
       const cx = Math.cos(angle)*r;
       const cy = Math.sin(angle)*r;
+      // 主裂纹
       const crack = svgEl("path", {
-        d:`M0,0 L${cx*0.4},${cy*0.4} L${cx},${cy}`,
-        class:"crack-line crack-anim",
-        style:`animation-delay:${i*0.05}s`
+        d:`M0,0 L${cx*0.35},${cy*0.35} L${cx},${cy}`,
+        class:"crack-line crack-anim crack-glow",
+        "stroke-dasharray":"120",
+        style:`animation-delay:${i*0.04}s`
       });
       g.appendChild(crack);
+      // 次裂纹分支
+      if(i%2===0){
+        const branchAngle = angle + 0.4;
+        const br = r * 0.6;
+        const bx = Math.cos(branchAngle)*br;
+        const by = Math.sin(branchAngle)*br;
+        const branch = svgEl("path", {
+          d:`M${cx*0.5},${cy*0.5} L${bx},${by}`,
+          class:"crack-line crack-anim",
+          "stroke-dasharray":"80",
+          style:`animation-delay:${i*0.04 + 0.1}s; opacity:.7;`
+        });
+        g.appendChild(branch);
+      }
+    }
+
+    // 4. 玻璃碎片 - 更多、带高光、带拖尾
+    for(let i=0;i<16;i++){
+      const angle = (i/16)*Math.PI*2 + Math.random()*0.5;
+      const dist = 50 + Math.random()*60;
+      const size = 5 + Math.random()*10;
+      const cx = Math.cos(angle)*20;
+      const cy = Math.sin(angle)*20;
+      // 拖尾
+      const tail = svgEl("line", {
+        x1:0, y1:0, x2:cx, y2:cy,
+        stroke:"rgba(200,230,255,0.3)", "stroke-width":size*0.4,
+        class:"shard-anim",
+        style:`--tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px; --r:${Math.random()*720 - 360}deg; animation-delay:${i*0.02}s; animation-duration:${0.7 + Math.random()*0.4}s`
+      });
+      g.appendChild(tail);
+      // 碎片本体
       const shard = svgEl("polygon", {
-        points:`0,0 ${cx+5},${cy-5} ${cx-5},${cy+5}`,
-        fill:"rgba(200,230,255,0.6)",
+        points:`0,0 ${cx+size},${cy-size} ${cx-size},${cy+size}`,
+        fill:"rgba(220,240,255,0.85)",
+        stroke:"rgba(255,255,255,0.9)", "stroke-width":0.8,
         class:"glass-shard shard-anim",
-        style:`--tx:${Math.cos(angle)*80}px; --ty:${Math.sin(angle)*80}px; --r:${Math.random()*360}deg; animation-delay:${i*0.05}s`
+        style:`--tx:${Math.cos(angle)*dist}px; --ty:${Math.sin(angle)*dist}px; --r:${Math.random()*720 - 360}deg; animation-delay:${i*0.02}s; animation-duration:${0.7 + Math.random()*0.4}s`
       });
       g.appendChild(shard);
     }
-    // 闪光
-    const flash = svgEl("circle", {cx:0, cy:0, r:40, fill:"#fff", opacity:0});
-    const anim = svgEl("animate", {attributeName:"opacity", from:0.8, to:0, dur:"0.2s", fill:"freeze"});
-    flash.appendChild(anim);
-    g.appendChild(flash);
   } else if(type === "explosion"){
-    // 爆炸：冲击波+碎片
-    for(let i=0;i<3;i++){
+    // 爆炸：冲击波+强闪光+碎片+烟雾
+    const flash = svgEl("circle", {cx:0, cy:0, r:80, fill:"#fff", class:"flash-pulse"});
+    g.appendChild(flash);
+    const shock = svgEl("circle", {cx:0, cy:0, r:0, class:"shockwave"});
+    g.appendChild(shock);
+
+    for(let i=0;i<4;i++){
       const ring = svgEl("circle", {
-        cx:0, cy:0, r:20,
-        fill:"none", stroke:["#fb923c","#ef4444","#fff"][i], "stroke-width":4,
+        cx:0, cy:0, r:15,
+        fill:"none", stroke:["#fb923c","#ef4444","#fbbf24","#fff"][i], "stroke-width":[5,4,3,2][i],
         class:"explosion-ring explode-anim",
-        style:`animation-delay:${i*0.1}s`
+        style:`animation-delay:${i*0.08}s`
       });
       g.appendChild(ring);
     }
-    for(let i=0;i<12;i++){
-      const angle = (i/12)*Math.PI*2;
+    for(let i=0;i<20;i++){
+      const angle = (i/20)*Math.PI*2;
       const shard = svgEl("polygon", {
-        points:"0,0 4,-4 8,0",
-        fill:"#aaa",
+        points:"0,0 5,-5 10,0",
+        fill:["#fb923c","#ef4444","#aaa","#fff"][Math.floor(Math.random()*4)],
         class:"glass-shard shard-anim",
-        style:`--tx:${Math.cos(angle)*(60+Math.random()*40)}px; --ty:${Math.sin(angle)*(60+Math.random()*40)}px; --r:${Math.random()*720}deg; animation-delay:${Math.random()*0.2}s`
+        style:`--tx:${Math.cos(angle)*(80+Math.random()*60)}px; --ty:${Math.sin(angle)*(80+Math.random()*60)}px; --r:${Math.random()*1080 - 540}deg; animation-delay:${Math.random()*0.25}s`
       });
       g.appendChild(shard);
     }
-  } else if(type === "acid-splash"){
-    // 酸液飞溅
     for(let i=0;i<8;i++){
-      const angle = -Math.PI/2 + (Math.random()-0.5);
-      const dist = 40 + Math.random()*50;
+      const smoke = svgEl("circle", {
+        cx:(Math.random()-0.5)*50, cy:-10, r:10+Math.random()*12,
+        fill:"#555",
+        class:"smoke-puff smoke-anim",
+        style:`animation-delay:${0.2 + i*0.1}s`
+      });
+      g.appendChild(smoke);
+    }
+  } else if(type === "acid-splash"){
+    // 酸液飞溅 - 更多液滴
+    for(let i=0;i<14;i++){
+      const angle = -Math.PI/2 + (Math.random()-0.5)*1.2;
+      const dist = 40 + Math.random()*70;
+      const size = 2 + Math.random()*5;
       const drop = svgEl("circle", {
-        cx:0, cy:0, r:3+Math.random()*3,
+        cx:0, cy:0, r:size,
         fill:"#a3e635",
         class:"acid-splash splash-anim",
-        style:`transform-origin:${Math.cos(angle)*dist}px ${Math.sin(angle)*dist}px; animation-delay:${Math.random()*0.15}s`
+        style:`transform-origin:${Math.cos(angle)*dist}px ${Math.sin(angle)*dist}px; animation-delay:${Math.random()*0.2}s; animation-duration:${0.5 + Math.random()*0.4}s`
       });
-      // 用 CSS transform 实现方向飞溅
       drop.setAttribute("transform", `rotate(${angle*180/Math.PI}) translate(0,${dist})`);
       g.appendChild(drop);
     }
-    // 烟雾
-    for(let i=0;i<5;i++){
+    for(let i=0;i<6;i++){
       const smoke = svgEl("circle", {
-        cx:(Math.random()-0.5)*40, cy:0, r:8+Math.random()*8,
+        cx:(Math.random()-0.5)*50, cy:0, r:8+Math.random()*10,
         fill:"#94a3b8",
         class:"smoke-puff smoke-anim",
         style:`animation-delay:${i*0.1}s`
@@ -1753,36 +1959,56 @@ function playDangerEffect(type, x, y, msg){
     }
   } else if(type === "fire"){
     // 大火/爆燃
-    for(let i=0;i<6;i++){
+    for(let i=0;i<8;i++){
       const flame = svgEl("ellipse", {
-        cx:(Math.random()-0.5)*30, cy:-10-Math.random()*20,
-        rx:8+Math.random()*10, ry:20+Math.random()*25,
-        fill:["#fb923c","#ef4444","#fbbf24"][Math.floor(Math.random()*3)],
-        opacity:0.8,
+        cx:(Math.random()-0.5)*40, cy:-15-Math.random()*25,
+        rx:10+Math.random()*12, ry:25+Math.random()*30,
+        fill:["#fb923c","#ef4444","#fbbf24","#fff"][Math.floor(Math.random()*4)],
+        opacity:0.85,
         class:"flame",
         style:`animation-delay:${Math.random()*0.2}s`
       });
-      const anim = svgEl("animate", {attributeName:"opacity", values:"0.8;0.3;0.8", dur:"0.2s", repeatCount:"3"});
+      const anim = svgEl("animate", {attributeName:"opacity", values:"0.85;0.2;0.85", dur:"0.15s", repeatCount:"5"});
       flame.appendChild(anim);
       g.appendChild(flame);
     }
+    for(let i=0;i<6;i++){
+      const smoke = svgEl("circle", {
+        cx:(Math.random()-0.5)*40, cy:-40, r:8+Math.random()*10,
+        fill:"#444",
+        class:"smoke-puff smoke-anim",
+        style:`animation-delay:${i*0.1}s`
+      });
+      g.appendChild(smoke);
+    }
+  } else if(type === "smoke"){
+    // 有毒气体
+    for(let i=0;i<10;i++){
+      const smoke = svgEl("circle", {
+        cx:(Math.random()-0.5)*60, cy:(Math.random()-0.5)*20, r:8+Math.random()*14,
+        fill:"#94a3b8",
+        class:"smoke-puff smoke-anim",
+        style:`animation-delay:${i*0.12}s`
+      });
+      g.appendChild(smoke);
+    }
   }
-  
+
   layerEffects.appendChild(g);
-  
+
   // 屏幕震动提示文字
   const label = document.createElement("div");
   label.className = "effect-label";
   label.textContent = msg;
   label.style.left = Math.min(Math.max(x, 100), window.innerWidth-200) + "px";
-  label.style.top = Math.max(y-40, 60) + "px";
+  label.style.top = Math.max(y-50, 60) + "px";
   document.querySelector(".canvas-wrap").appendChild(label);
-  
-  // 2秒后清理
+
+  // 3.5秒后清理
   setTimeout(()=>{
     g.remove();
     label.remove();
-  }, 2000);
+  }, 3500);
 }
 
 /* 让器材震动 */
@@ -2041,6 +2267,8 @@ function toggleHeat(id){
     const cy = inst.y + eq.instSize.h/2;
     playDangerEffect("shatter", cx, cy, "试管炸裂！玻璃碎片飞溅");
     shakeInstance(inst.id);
+    // 器材破裂，后续渲染裂纹
+    inst.broken = true;
   }
   if(!inst.heated && !eq.heatable && eq.type!=="heatSource"){
     toast("⚠️ 加热不耐热器材！","warn");
