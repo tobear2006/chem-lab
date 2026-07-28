@@ -5,7 +5,7 @@
 <!-- 版本自检：页面加载时立即检查是否最新版，不是就强制刷新 -->
 <script>
 (function(){
-  var APP_VERSION = '3.0.9';
+  var APP_VERSION = '3.1.0';
   var VER_KEY = 'chem-lab-version';
   var stored = localStorage.getItem(VER_KEY);
   if(stored !== APP_VERSION){
@@ -22,7 +22,7 @@
 <script>
 // 强制清理旧版Service Worker：iPad PWA缓存极顽固，启动时如果检测到旧SW控制，先注销再刷新
 (function(){
-  var APP_VERSION = '3.0.9';
+  var APP_VERSION = '3.1.0';
   var SW_CLEAN_KEY = 'chem-lab-sw-cleaned';
   var cleaned = localStorage.getItem(SW_CLEAN_KEY) === APP_VERSION;
   if('serviceWorker' in navigator && !cleaned){
@@ -43,7 +43,7 @@
 <script>
 // 后台版本检查：加载后异步检查 version.json，发现新版自动刷新
 (function(){
-  var APP_VERSION = '3.0.9';
+  var APP_VERSION = '3.1.0';
   var VER_KEY = 'chem-lab-version';
   window.addEventListener('load', function(){
     setTimeout(function(){
@@ -247,7 +247,9 @@ input{font-family:inherit;}
 .port-halo{fill:rgba(34,211,238,0.15);}
 .port{fill:var(--accent); stroke:#fff; stroke-width:2; opacity:.9; filter:drop-shadow(0 0 6px var(--accent));}
 .port.linking{fill:var(--warn); stroke:"#fff"; stroke-width:2.5; filter:drop-shadow(0 0 10px var(--warn)); animation:portPulse 0.8s infinite;}
-@keyframes portPulse{0%,100%{r:7; opacity:1;} 50%{r:10; opacity:0.7;}}
+@keyframes portPulse{0%,100%{r:9; opacity:1;} 50%{r:13; opacity:0.7;}}
+@keyframes hoverRingPulse{0%,100%{r:22; opacity:0.9;} 50%{r:26; opacity:0.5;}}
+#port-hover-ring{animation: hoverRingPulse 0.6s infinite ease-in-out;}
 .connection-path{stroke:var(--text-dim); stroke-width:3; fill:none; opacity:.7; cursor:pointer;}
 .connection-path:hover{stroke:var(--accent); opacity:1;}
 .bubble{fill:rgba(255,255,255,.6);}
@@ -1786,6 +1788,17 @@ function renderCanvas(){
       "data-id": inst.id
     });
     
+    // 透明命中矩形（确保细器材也能轻松选中，最小36x36点击区域）
+    const hitW = Math.max(eq.instSize.w, 36);
+    const hitH = Math.max(eq.instSize.h, 36);
+    const hitX = (eq.instSize.w - hitW) / 2;
+    const hitY = (eq.instSize.h - hitH) / 2;
+    const hitRect = svgEl("rect", {
+      x: hitX, y: hitY, width: hitW, height: hitH,
+      fill: "transparent", style: "pointer-events: all;"
+    });
+    g.appendChild(hitRect);
+    
     // 器材图形
     const use = svgEl("use", {href:`#sym-${eq.id}`, width:eq.instSize.w, height:eq.instSize.h});
     g.appendChild(use);
@@ -1808,10 +1821,14 @@ function renderCanvas(){
       }
       g.appendChild(crackGroup);
     }    
-    // 选中时的发光描边（可见的选中提示）
+    // 选中时的发光描边（可见的选中提示，最小36x36确保细器材也可见）
     if(state.selectedId === inst.id){
+      const oW = Math.max(eq.instSize.w, 36);
+      const oH = Math.max(eq.instSize.h, 36);
+      const oX = (eq.instSize.w - oW) / 2;
+      const oY = (eq.instSize.h - oH) / 2;
       const outline = svgEl("rect", {
-        x:-4, y:-4, width:eq.instSize.w+8, height:eq.instSize.h+8,
+        x: oX-4, y: oY-4, width: oW+8, height: oH+8,
         rx:4, class:"equip-outline"
       });
       g.appendChild(outline);
@@ -1865,14 +1882,14 @@ function renderCanvas(){
         const cx = p.x/100*eq.instSize.w;
         const cy = p.y/100*eq.instSize.h;
         const isLinkingFrom = state.linkingFrom && state.linkingFrom.instId===inst.id && state.linkingFrom.portId===p.id;
-        // 外圈光晕
+        // 外圈光晕（增大到r:18，配合30px命中半径）
         const halo = svgEl("circle", {
-          cx, cy, r:12, fill:"rgba(34,211,238,0.15)", class:"port-halo",
+          cx, cy, r:18, fill:"rgba(34,211,238,0.15)", class:"port-halo",
           style:"pointer-events:none;"
         });
-        // 可视端口
+        // 可视端口（增大到r:9）
         const port = svgEl("circle", {
-          cx, cy, r:7, class:"port"+(isLinkingFrom?" linking":""),
+          cx, cy, r:9, class:"port"+(isLinkingFrom?" linking":""),
           style:"pointer-events:none;"
         });
         g.appendChild(halo);
@@ -1890,16 +1907,18 @@ function renderCanvas(){
         const svgPt = svgPoint(e);
         const localX = svgPt.x - inst.x;
         const localY = svgPt.y - inst.y;
-        // 检查是否点中了某个端口（半径20内）
+        // 检查是否点中了某个端口（半径30内，比可视halo略大，更容易点中）
         let hitPort = null;
+        let hitDist = 999999;
         for(const p of eq.ports){
           const px = p.x/100*eq.instSize.w;
           const py = p.y/100*eq.instSize.h;
           const dx = localX - px;
           const dy = localY - py;
-          if(dx*dx + dy*dy <= 400){ // r=20 的平方
+          const d2 = dx*dx + dy*dy;
+          if(d2 <= 900 && d2 < hitDist){ // r=30 的平方，取最近的端口
             hitPort = p;
-            break;
+            hitDist = d2;
           }
         }
         if(hitPort){
@@ -3418,6 +3437,73 @@ function init(){
   document.addEventListener('pointerdown', initAudioOnce);
   document.addEventListener('keydown', initAudioOnce);
   document.addEventListener('touchstart', initAudioOnce);
+  
+  // ===== 连接模式端口悬停高亮（v3.1.0）=====
+  // 创建持久的高亮ring元素（不随renderCanvas重建）
+  const hoverRing = svgEl("circle", {
+    cx: 0, cy: 0, r: 22,
+    fill: "none",
+    stroke: "var(--warn)",
+    "stroke-width": 3,
+    opacity: 0,
+    style: "pointer-events: none; transition: opacity 0.15s;",
+    id: "port-hover-ring"
+  });
+  canvas.appendChild(hoverRing);
+  
+  let hoverRafPending = false;
+  const onCanvasPointerMove = (e)=>{
+    if(state.tool !== "connect"){
+      hoverRing.setAttribute("opacity", 0);
+      return;
+    }
+    if(hoverRafPending) return;
+    hoverRafPending = true;
+    requestAnimationFrame(()=>{
+      hoverRafPending = false;
+      if(state.tool !== "connect"){
+        hoverRing.setAttribute("opacity", 0);
+        return;
+      }
+      const svgPt = svgPoint(e);
+      // 找到最近的端口（在命中半径30px内）
+      let nearest = null;
+      let minDist = 999999;
+      state.instances.forEach(inst=>{
+        const eq = EQUIPMENT.find(x=>x.id===inst.eqId);
+        if(!eq) return;
+        eq.ports.forEach(p=>{
+          const px = inst.x + p.x/100*eq.instSize.w;
+          const py = inst.y + p.y/100*eq.instSize.h;
+          const dx = svgPt.x - px;
+          const dy = svgPt.y - py;
+          const d2 = dx*dx + dy*dy;
+          if(d2 <= 900 && d2 < minDist){
+            minDist = d2;
+            nearest = {px, py};
+          }
+        });
+      });
+      if(nearest){
+        hoverRing.setAttribute("cx", nearest.px);
+        hoverRing.setAttribute("cy", nearest.py);
+        hoverRing.setAttribute("opacity", 0.9);
+      } else {
+        hoverRing.setAttribute("opacity", 0);
+      }
+    });
+  };
+  canvas.addEventListener("pointermove", onCanvasPointerMove);
+  canvas.addEventListener("touchmove", (e)=>{
+    if(state.tool !== "connect") return;
+    if(e.touches.length > 0){
+      onCanvasPointerMove(e.touches[0]);
+    }
+  }, {passive: true});
+  // 鼠标离开画布时隐藏高亮
+  canvas.addEventListener("pointerleave", ()=>{
+    hoverRing.setAttribute("opacity", 0);
+  });
 }
 init();
 
